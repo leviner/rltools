@@ -68,7 +68,7 @@ class akMaps:
         gl.yformatter = LATITUDE_FORMATTER
         c = plt.cm.jet(values/int(max))
         
-        a = ax.scatter(lon, lat,s=40+5**values,facecolors='None',edgecolors = c,transform=ccrs.Geodetic(),cmap='jet',zorder=6, vmin = 0,vmax=int(max))
+        a = ax.scatter(lon, lat,s=40+5**values,facecolors='None',edgecolors = c,transform=ccrs.PlateCarree(),cmap='jet',zorder=6, vmin = 0,vmax=int(max))
         s = a.set_clim([0,int(max)])
 
         lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='grey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
