@@ -17,11 +17,11 @@ import cartopy.mpl.ticker as cticker
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 class akMaps:
-    
+
     def __init__(self):
         etopoFile = os.path.dirname(__file__)+'/etopo1_bedrock.asc'
         self.setOlevels(etopoFile)
-    
+
     def setOlevels(self,etopoFile):
         #Initialize the topography
         topo_file = open(etopoFile, 'r')
@@ -50,8 +50,8 @@ class akMaps:
         self.olevels3 = [0,10000]
         self.olevels4 = [0]
 
-    
-    def chukchiScatter(self,lat,lon,values,max,extent=[-155,-171,59,73.5],ax=None):
+
+    def chukchiScatter(self,lat,lon,values,max,extent=[-155,-171,59,73.5],ax=None,colormap='plasma'):
         if ax is None:
             figure = plt.figure(figsize=(20,10))
             ax=plt.subplot(111,projection=ccrs.Mercator())
@@ -66,9 +66,10 @@ class akMaps:
         gl.ylabel_style = {'size':16}
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
-        c = plt.cm.jet(values/int(max))
-        
-        a = ax.scatter(lon, lat,s=40+5**values,facecolors='None',edgecolors = c,transform=ccrs.Geodetic(),cmap='jet',zorder=6, vmin = 0,vmax=int(max))
+        cmapC = plt.get_cmap(colormap)
+        c = cmapC(values/int(max))
+
+        a = ax.scatter(lon, lat,s=40+5**values,facecolors='None',edgecolors = c,transform=ccrs.PlateCarree(),cmap=colormap,zorder=6, vmin = 0,vmax=int(max))
         s = a.set_clim([0,int(max)])
 
         lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='grey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
