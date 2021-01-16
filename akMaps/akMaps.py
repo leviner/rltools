@@ -51,7 +51,12 @@ class akMaps:
         self.olevels4 = [0]
 
 
-    def chukchiScatter(self,lat,lon,values,max,extent=[-155,-171,59,73.5],ax=None,colormap='plasma'):
+    def chukchiScatter(self,lat,lon,values,max,extent=[-155,-171,59,73.5],ax=None,colormap=plt.cm.plasma):
+        """ now accepts custom colormaps using matplotlib.colors, e.g.,
+        import matplotlib.colors as clr
+        cmap = clr.LinearSegmentedColormap.from_list('acod',['#808080','#800080','#b300b3','#ff00ff'], N=256)
+        chukchiScatter(lat,lon,values,max,extent=[-155,-171,59,73.5],ax=None,colormap=cmap)
+        """
         if ax is None:
             figure = plt.figure(figsize=(20,10))
             ax=plt.subplot(111,projection=ccrs.Mercator())
@@ -66,10 +71,9 @@ class akMaps:
         gl.ylabel_style = {'size':16}
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
-        cmapC = plt.get_cmap(colormap)
-        c = cmapC(values/int(max))
+        c = colormap(values/int(max))
 
-        a = ax.scatter(lon, lat,s=40+5**values,facecolors='None',edgecolors = c,transform=ccrs.PlateCarree(),cmap=colormap,zorder=6, vmin = 0,vmax=int(max))
+        a = ax.scatter(lon, lat,s=10+5.2**values,facecolors='None',edgecolors = c,transform=ccrs.PlateCarree(),cmap=colormap,zorder=6, vmin = 0,vmax=int(max))
         s = a.set_clim([0,int(max)])
 
         lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='grey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
