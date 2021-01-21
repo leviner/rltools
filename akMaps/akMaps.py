@@ -15,6 +15,7 @@ from matplotlib import rcParams
 import cartopy.crs as ccrs
 import cartopy.mpl.ticker as cticker
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from scipy.interpolate import griddata
 
 class akMaps:
 
@@ -76,6 +77,30 @@ class akMaps:
         a = ax.scatter(lon, lat,s=10+5.2**values,facecolors='None',edgecolors = c,transform=ccrs.PlateCarree(),cmap=colormap,zorder=6, vmin = 0,vmax=int(max))
         s = a.set_clim([0,int(max)])
 
+        lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='grey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
+        cso1 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels1, colors ='grey',transform=ccrs.PlateCarree(),zorder=1)#cmap=cm.ocean)
+        cso2 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels2, colors ='lightgrey',transform=ccrs.PlateCarree(),zorder=2)#cmap=cm.ocean)
+        cso4 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels4, colors ='k',transform=ccrs.PlateCarree(),zorder=5)#cmap=cm.ocean)
+        ax.set_extent(extent)
+
+    def chukchiMesh(self, lat, lon, values, interpMethod='linear', cmin=0, cmax=10, extent=[-155,-171,59,73.5],ax=None,colormap=plt.cm.coolwarm):
+        grid_x, grid_y = np.mgrid[min(lon):max(lon):0.25, min(lat):max(lat):0.25]
+        grid_z0 = griddata((lon,lat), values, (grid_x, grid_y), method=interpMethod)
+        if ax is None:
+            figure = plt.figure(figsize=(20,10))
+            ax=plt.subplot(111,projection=ccrs.Mercator())
+        rcParams['contour.negative_linestyle'] = 'solid'
+        rcParams['lines.linewidth'] = .5
+        gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,linestyle='--',zorder=3)
+        gl.xlabels_top = False
+        gl.ylabels_right = False
+        gl.xlocator = mticker.FixedLocator([-172, -168, -164, -160, -156, -154])
+        gl.ylocator = mticker.FixedLocator([57,60,62,64,66,68,70,72,74])
+        gl.xlabel_style = {'size':16}
+        gl.ylabel_style = {'size':16}
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+        a = ax.pcolormesh(grid_x, grid_y,grid_z0,transform=ccrs.PlateCarree(),cmap=colormap,zorder=0, vmin = cmin,vmax=cmax)
         lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='grey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
         cso1 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels1, colors ='grey',transform=ccrs.PlateCarree(),zorder=1)#cmap=cm.ocean)
         cso2 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels2, colors ='lightgrey',transform=ccrs.PlateCarree(),zorder=2)#cmap=cm.ocean)
