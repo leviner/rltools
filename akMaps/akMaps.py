@@ -46,10 +46,9 @@ class akMaps:
         llevels = np.arange(-500,2251,100) # check etopo.ravel().max()
         #lcs = m.contourf(rlons, rlats, etopo, llevels, cmap=cm.terrain)
         #olevels = np.arange(-3500,1,100) # check etopo.ravel().min()
-        self.olevels1 = [-200,-150,-100,-50,0]
-        self.olevels2 = [-2000,-1500,-1000,-500]
-        self.olevels3 = [0,10000]
-        self.olevels4 = [0]
+        self.olevels1 = [-1000,-100,-40]
+        self.olevels2 = [0,10000]
+        self.olevels3 = [0]
 
 
     def chukchiScatter(self,lat,lon,values,max,extent=[-155,-171,59,73.5],ax=None,colormap=plt.cm.plasma):
@@ -77,10 +76,9 @@ class akMaps:
         a = ax.scatter(lon, lat,s=10+5.2**values,facecolors='None',edgecolors = c,transform=ccrs.PlateCarree(),cmap=colormap,zorder=6, vmin = 0,vmax=int(max))
         s = a.set_clim([0,int(max)])
 
-        lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='grey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
-        cso1 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels1, colors ='grey',transform=ccrs.PlateCarree(),zorder=1)#cmap=cm.ocean)
-        cso2 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels2, colors ='lightgrey',transform=ccrs.PlateCarree(),zorder=2)#cmap=cm.ocean)
-        cso4 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels4, colors ='k',transform=ccrs.PlateCarree(),zorder=5)#cmap=cm.ocean)
+        lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels2, colors ='lightgrey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
+        cso1 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels1, colors ='grey',transform=ccrs.PlateCarree(),zorder=2)#cmap=cm.ocean)
+        cso2 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='k',transform=ccrs.PlateCarree(),zorder=5)#cmap=cm.ocean)
         ax.set_extent(extent)
 
     def chukchiMesh(self, lat, lon, values, interpMethod='linear', cmin=0, cmax=10, extent=[-155,-171,59,73.5],ax=None,colormap=plt.cm.coolwarm):
@@ -101,8 +99,7 @@ class akMaps:
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
         a = ax.pcolormesh(grid_x, grid_y,grid_z0,transform=ccrs.PlateCarree(),cmap=colormap,zorder=0, vmin = cmin,vmax=cmax)
-        lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='grey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
-        cso1 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels1, colors ='grey',transform=ccrs.PlateCarree(),zorder=1)#cmap=cm.ocean)
-        cso2 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels2, colors ='lightgrey',transform=ccrs.PlateCarree(),zorder=2)#cmap=cm.ocean)
-        cso4 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels4, colors ='k',transform=ccrs.PlateCarree(),zorder=5)#cmap=cm.ocean)
+        lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels2, colors ='lightgrey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
+        cso1 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels1, colors ='grey',transform=ccrs.PlateCarree(),zorder=2)#cmap=cm.ocean)
+        cso2 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='k',transform=ccrs.PlateCarree(),zorder=5)#cmap=cm.ocean)
         ax.set_extent(extent)
