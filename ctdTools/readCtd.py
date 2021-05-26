@@ -7,6 +7,7 @@ import numpy as np
 import os
 from geopy.distance import distance
 from datetime import timedelta
+import xarray as xr
 
 def castMeta(file): # get the lat/lon data
     with open(file) as fd:
@@ -126,3 +127,15 @@ def eventTemps(dfCtd, dfCtdKey, dfTrawls):
     dfMatched['tempOpen'] = tempOpen
     dfMatched['tempRange'] = tempRange
     return dfMatched
+
+def nc2csv(file): # save PMEL standard netCDF files to csv files
+    ds = xr.open_dataset(file,decode_times=False)
+    df = ds.to_dataframe().reset_index()
+    df['StationID'] = file.split('_')[2]
+    df['Year'] = 2017
+    df['StationNumber'] = int(file.split('_')[2][-3:])
+    df = df[['StationID','Year','StationNumber','lat','lon','dep','PAR_905','T_28','S_41','OST_62','ST_70']]
+    df = df.rename(columns={'lat':'LatitudeStart DD','lon':'LongitudeStart DD','dep':'Depth (m)','S_41':'PrimarySalinity PSU','T_28':'PrimaryTemperature deg. C',
+                   'PAR_905':'PARIrradiance uE','OST_62':'PrimaryOxygenSat %','ST_70':'SigmaTheta kg/m3'})
+    df.to_csv(file.split('.')[0]+'.csv', index=False)
+    return True
