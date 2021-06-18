@@ -12,6 +12,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from matplotlib import rcParams
+import matplotlib.patches as mpatches
 import cartopy.crs as ccrs
 import cartopy.mpl.ticker as cticker
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -81,7 +82,7 @@ class akMaps:
         cso2 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='k',transform=ccrs.PlateCarree(),zorder=5)#cmap=cm.ocean)
         ax.set_extent(extent)
 
-    def chukchiMesh(self, lat, lon, values, interpMethod='linear', cmin=0, cmax=10, extent=[-155,-171,59,73.5],ax=None,colormap=plt.cm.coolwarm):
+    def chukchiMesh(self, lat, lon, values, interpMethod='linear', cmin=0, cmax=10, extent=[-155,-171,59,73.5],ax=None,colormap=plt.cm.coolwarm,hatch=False):
         grid_x, grid_y = np.mgrid[min(lon):max(lon):0.25, min(lat):max(lat):0.25]
         grid_z0 = griddata((lon,lat), values, (grid_x, grid_y), method=interpMethod)
         if ax is None:
@@ -99,6 +100,10 @@ class akMaps:
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
         a = ax.pcolormesh(grid_x, grid_y,grid_z0,transform=ccrs.PlateCarree(),cmap=colormap,zorder=0, vmin = cmin,vmax=cmax)
+        if hatch:
+            cs = ax.contourf(grid_x, grid_y,grid_z0,[-5,2],colors='none',hatches=['xx'],transform=ccrs.PlateCarree())
+            #circ1 = mpatches.Patch(facecolor='none',hatch=r'xx',label='<2 $^{o}$C')
+            #ax.legend(handles=[circ1],loc=7,fontsize=16)
         lfill = ax.contourf(self.rlons, self.rlats, self.etopo, self.olevels2, colors ='lightgrey',transform=ccrs.PlateCarree(),zorder=4)#cmap=cm.ocean)
         cso1 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels1, colors ='grey',transform=ccrs.PlateCarree(),zorder=2)#cmap=cm.ocean)
         cso2 = ax.contour(self.rlons, self.rlats, self.etopo, self.olevels3, colors ='k',transform=ccrs.PlateCarree(),zorder=5)#cmap=cm.ocean)
