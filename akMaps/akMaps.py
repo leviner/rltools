@@ -68,8 +68,8 @@ class akMaps:
         gl.ylabels_right = False
         gl.xlocator = mticker.FixedLocator([-172, -168, -164, -160, -156, -154])
         gl.ylocator = mticker.FixedLocator([57,60,62,64,66,68,70,72,74])
-        gl.xlabel_style = {'size':24}
-        gl.ylabel_style = {'size':24}
+        gl.xlabel_style = {'size':16}
+        gl.ylabel_style = {'size':16}
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
         c = colormap(values/int(max))
