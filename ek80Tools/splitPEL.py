@@ -1,3 +1,5 @@
+# coding=utf-8
+
 from echolab2.instruments import echosounder
 from glob import glob
 import os
@@ -5,6 +7,30 @@ import argparse
 from tqdm import tqdm
 
 class splitFiles():
+    '''
+    The purpose of this code is to split multichannel EK80 .raw files into individual
+    files, each containing the datagram and associated metadata for a  single channel, 
+    regardless of pulse form.
+
+    Just for organization I've set this up as a class, but the bare bones of it uses 
+    pyEcholab (https://github.com/CI-CMG/pyEcholab) to read in a raw file, identify 
+    the channel ids, channel pulse forms, start/end frequencies, and write out a new
+    .raw file with an additional suffix to an output directory. Additional wrapping 
+    provides the iterating through multiple channels/files.
+
+    usage: splitPEL.py [-h] [--out_dir OUT_DIR] [--suffix SUFFIX] in_dir
+
+    positional arguments:
+    in_dir             Input directory of raw files
+
+    optional arguments:
+    -h, --help           show this help message and exit
+    --in_files IN_FILES  define a single or comma-separated list of filenames rather than iterating through all files. 
+                            If a filename has whitespace you must use double quotes around it
+    --out_dir OUT_DIR    Output directory for split files. Default is new directory 'splitFiles' in input directory
+    --suffix SUFFIX      File suffix used to identify multichannel/FM file type. E.g., if all target files end in 
+                            ..._2.raw, use --suffix=_2
+'''
 
     def __init__(self, args):
         if args.out_dir is None:
@@ -12,7 +38,10 @@ class splitFiles():
         else:
             self.out_dir = args.out_dir
         self.in_dir = args.in_dir
-        self.in_files = glob(self.in_dir+'/*'+args.suffix+'.raw')
+        if args.in_files:
+            self.in_files = [self.in_dir+'/'+f for f in args.in_files.split(',')]
+        else:
+            self.in_files = glob(self.in_dir+'/*'+args.suffix+'.raw')
         if not os.path.exists(self.out_dir):
             os.makedirs(self.out_dir)
         self.main()
@@ -53,14 +82,15 @@ class splitFiles():
 def parseArguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("in_dir", help="Input directory of raw files", type=str)
+    parser.add_argument("--in_files", help="define a single or comma-separated list of filenames rather than \
+            iterating through all files. If a filename has whitespace you must use double quotes around it", type=str, default=None)
     parser.add_argument("--out_dir", help="Output directory for split files. \
             Default is new directory 'splitFiles' in input directory", type=str, default=None)
     parser.add_argument("--suffix", help="File suffix used to identify multichannel/FM file type. \
-            E.g., if all target files end in ...-2.raw, use --suffix=-2", type=str, default='')
+            E.g., if all target files end in ..._2.raw, use --suffix=_2", type=str, default='')
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
-    # Parse the arguments
     args = parseArguments()
     splitFiles(args)
