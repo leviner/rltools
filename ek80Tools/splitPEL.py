@@ -30,6 +30,8 @@ class splitFiles():
     --out_dir OUT_DIR    Output directory for split files. Default is new directory 'splitFiles' in input directory
     --suffix SUFFIX      File suffix used to identify multichannel/FM file type. E.g., if all target files end in 
                             ..._2.raw, use --suffix=_2
+    --prefix PREFIX     File prefix used to identify multichannel/FM file type. E.g., if all target files start in 
+                            DY_FM..., use --prefix=DY_FM
 '''
 
     def __init__(self, args):
@@ -41,7 +43,7 @@ class splitFiles():
         if args.in_files:
             self.in_files = [self.in_dir+'/'+f for f in args.in_files.split(',')]
         else:
-            self.in_files = glob(self.in_dir+'/*'+args.suffix+'.raw')
+            self.in_files = glob(self.in_dir+'/'+args.prefix+'*'+args.suffix+'.raw')
         if not os.path.exists(self.out_dir):
             os.makedirs(self.out_dir)
         self.main()
@@ -86,6 +88,8 @@ def parseArguments():
             iterating through all files. If a filename has whitespace you must use double quotes around it", type=str, default=None)
     parser.add_argument("--out_dir", help="Output directory for split files. \
             Default is new directory 'splitFiles' in input directory", type=str, default=None)
+    parser.add_argument("--prefix", help="File prefix used to identify multichannel/FM file type. \
+            E.g., if all target files start in DY_FM..., use --prefix=DY_FM", type=str, default='')
     parser.add_argument("--suffix", help="File suffix used to identify multichannel/FM file type. \
             E.g., if all target files end in ..._2.raw, use --suffix=_2", type=str, default='')
     args = parser.parse_args()
