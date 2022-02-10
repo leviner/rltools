@@ -5,6 +5,7 @@ from glob import glob
 import os
 import argparse
 from tqdm import tqdm
+import numpy as np
 
 class splitFiles():
     '''
@@ -33,6 +34,7 @@ class splitFiles():
     --prefix PREFIX     File prefix used to identify multichannel/FM file type. E.g., if all target files start in 
                             DY_FM..., use --prefix=DY_FM
     --group GROUP       If True, create new files containing all channels with same pulse form
+    --within_channel WITHIN_CHANNEL If True, split files where multiple pulse forms exist in a single channel
 '''
 
     def __init__(self, args):
@@ -50,6 +52,8 @@ class splitFiles():
         self.group = args.group
         if self.group is True:
             self.channelGroups = {'CW':[],'FM':[]}
+
+        self.within_channel=args.within_channel
         self.main()
         
     def openFile(self):
@@ -63,7 +67,6 @@ class splitFiles():
             if self.group is True:
                 self.channelGroups[self.channelPulse].append(self.channel)
             else:
-                self.setChannelName()
                 self.writeChannelIDs = [self.channel]
                 self.writeChannels() 
         if self.group is True:
@@ -75,9 +78,24 @@ class splitFiles():
 
     def setChannelName(self):
         if self.channelPulse == 'CW':
-            self.nameFreq = str(int(self.ek_data.get_channel_data()[self.channel][0].frequency[0]/1000))+'CW'
+            if self.within_channel:
+                for k in self.ria_list['CW']:
+                    if self.ria_list['CW'][k].size > 0:
+                        f_s =k.frequency
+                        break
+                self.nameFreq = str(int(f_s[0]/1000))+'CW'
+            else:
+                self.nameFreq = str(int(self.ek_data.get_channel_data()[self.channel][0].frequency[0]/1000))+'CW'
         elif self.channelPulse == 'FM':
-            self.nameFreq = str(int(self.ek_data.get_channel_data()[self.channel][0].frequency_start[0]/1000))+'-'+\
+            if self.within_channel:
+                for k in self.ria_list['FM']:
+                    if self.ria_list['FM'][k].size > 0:
+                        f_s =k.frequency_start
+                        f_e = k.frequency_end
+                        break
+                self.nameFreq = str(int(f_s[0]/1000))+'-'+str(int(f_e[0]/1000))+'FM'
+            else:
+                self.nameFreq = str(int(self.ek_data.get_channel_data()[self.channel][0].frequency_start[0]/1000))+'-'+\
                         str(int(self.ek_data.get_channel_data()[self.channel][0].frequency_end[0]/1000))+'FM'
 
     def getchannelFreq(self):
@@ -90,9 +108,18 @@ class splitFiles():
             pass
     
     def writeChannels(self):
-        out_files = {} # This has to be reset for every channel since the filename key remains the same but the value changes
-        out_files[self.nameBase] = os.path.join(self.out_dir, '')+os.path.splitext(self.nameBase)[0]+'_'+self.nameFreq+'_split.raw'
-        files_written = self.ek_data.write_raw(out_files, channel_ids=self.writeChannelIDs,overwrite=True)
+        if self.within_channel:
+            self.buildRIA()
+            for key in self.ria_list:
+                self.channelPulse = key
+                self.setChannelName()
+                
+                out_file= os.path.join(self.out_dir, '')+os.path.splitext(self.nameBase)[0]+'_'+self.nameFreq+'_split.raw'
+                files_written = self.ek_data.write_raw(out_file, raw_index_array=self.ria_list[key],overwrite=True)
+        else:
+            self.setChannelName()
+            out_file= os.path.join(self.out_dir, '')+os.path.splitext(self.nameBase)[0]+'_'+self.nameFreq+'_split.raw'
+            files_written = self.ek_data.write_raw(out_file, channel_ids=self.writeChannelIDs,overwrite=True)
 
     def main(self):
         print('Writing files to: '+self.out_dir)
@@ -101,6 +128,24 @@ class splitFiles():
             self.openFile()
             self.splitFile()
         print('Complete')
+
+    def buildRIA(self):
+        self.ria_list = {}
+        ria = {}
+        for data in self.ek_data.get_channel_data()[self.channel]:
+            if data.is_cw():
+                ria[data] = np.arange(data.n_pings)
+            else:
+                ria[data] = np.array([])
+        self.ria_list['CW'] = ria
+        ria = {}
+        for data in self.ek_data.get_channel_data()[self.channel]:
+            if data.is_fm():
+                ria[data] = np.arange(data.n_pings)
+            else:
+                ria[data] = np.array([])
+        self.ria_list['FM'] = ria
+
 
 def parseArguments():
     parser = argparse.ArgumentParser()
@@ -114,6 +159,7 @@ def parseArguments():
     parser.add_argument("--suffix", help="File suffix used to identify multichannel/FM file type. \
             E.g., if all target files end in ..._2.raw, use --suffix=_2", type=str, default='')
     parser.add_argument("--group", help="If True, create new files containing all channels with same pulse form", type=bool, default=False)
+    parser.add_argument("--within_channel", help="If True, split files where multiple pulse forms exist in a single channel", type=bool, default=False)
     args = parser.parse_args()
     return args
 
