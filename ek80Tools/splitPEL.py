@@ -35,6 +35,11 @@ class splitFiles():
                             DY_FM..., use --prefix=DY_FM
     --group GROUP       If True, create new files containing all channels with same pulse form
     --within_channel WITHIN_CHANNEL If True, split files where multiple pulse forms exist in a single channel
+
+    A major thing to clean up is hitting the 'reset' button between each file. Some 
+    of the init assignments need to be done for ever file in a file list so some stuff 
+    should get moved around. Lots of cleaning to do.
+
 '''
 
     def __init__(self, args):
@@ -52,7 +57,6 @@ class splitFiles():
         self.group = args.group
         if self.group is True:
             self.channelGroups = {'CW':[],'FM':[]}
-
         self.within_channel=args.within_channel
         self.main()
         
@@ -69,12 +73,14 @@ class splitFiles():
             else:
                 self.writeChannelIDs = [self.channel]
                 self.writeChannels() 
-        if self.group is True:
+        if self.group:
             for k in self.channelGroups.keys():
                 if self.channelGroups[k]:
                     self.writeChannelIDs = self.channelGroups[k]
-                    self.nameFreq = k
+                    self.groupName = k
                     self.writeChannels()
+            self.channelGroups = {'CW':[],'FM':[]}
+            
 
     def setChannelName(self):
         if self.channelPulse == 'CW':
@@ -84,6 +90,8 @@ class splitFiles():
                         f_s =k.frequency
                         break
                 self.nameFreq = str(int(f_s[0]/1000))+'CW'
+            elif self.group:
+                self.nameFreq = self.groupName
             else:
                 self.nameFreq = str(int(self.ek_data.get_channel_data()[self.channel][0].frequency[0]/1000))+'CW'
         elif self.channelPulse == 'FM':
@@ -94,6 +102,8 @@ class splitFiles():
                         f_e = k.frequency_end
                         break
                 self.nameFreq = str(int(f_s[0]/1000))+'-'+str(int(f_e[0]/1000))+'FM'
+            elif self.group:
+                self.nameFreq = self.groupName
             else:
                 self.nameFreq = str(int(self.ek_data.get_channel_data()[self.channel][0].frequency_start[0]/1000))+'-'+\
                         str(int(self.ek_data.get_channel_data()[self.channel][0].frequency_end[0]/1000))+'FM'
@@ -113,21 +123,14 @@ class splitFiles():
             for key in self.ria_list:
                 self.channelPulse = key
                 self.setChannelName()
-                
-                out_file= os.path.join(self.out_dir, '')+os.path.splitext(self.nameBase)[0]+'_'+self.nameFreq+'_split.raw'
-                files_written = self.ek_data.write_raw(out_file, raw_index_array=self.ria_list[key],overwrite=True)
+                out_files = {} # This has to be reset for every channel since the filename key remains the same but the value changes
+                out_files[self.nameBase] = os.path.join(self.out_dir, '')+os.path.splitext(self.nameBase)[0]+'_'+self.nameFreq+'_split.raw'
+                files_written = self.ek_data.write_raw(out_files, raw_index_array=self.ria_list[key],overwrite=True)
         else:
             self.setChannelName()
-            out_file= os.path.join(self.out_dir, '')+os.path.splitext(self.nameBase)[0]+'_'+self.nameFreq+'_split.raw'
-            files_written = self.ek_data.write_raw(out_file, channel_ids=self.writeChannelIDs,overwrite=True)
-
-    def main(self):
-        print('Writing files to: '+self.out_dir)
-        for self.file in (pbar1 := tqdm(self.in_files)):
-            pbar1.set_description('Processing '+str(len(self.in_files))+' .raw files')
-            self.openFile()
-            self.splitFile()
-        print('Complete')
+            out_files = {} # This has to be reset for every channel since the filename key remains the same but the value changes
+            out_files[self.nameBase] = os.path.join(self.out_dir, '')+os.path.splitext(self.nameBase)[0]+'_'+self.nameFreq+'_split.raw'
+            files_written = self.ek_data.write_raw(out_files, channel_ids=self.writeChannelIDs,overwrite=True)
 
     def buildRIA(self):
         self.ria_list = {}
@@ -146,6 +149,14 @@ class splitFiles():
                 ria[data] = np.array([])
         self.ria_list['FM'] = ria
 
+    def main(self):
+        print('Writing files to: '+self.out_dir)
+        for self.file in (pbar1 := tqdm(self.in_files)):
+            pbar1.set_description('Processing '+str(len(self.in_files))+' .raw files')
+            self.openFile()
+            self.splitFile()
+            del self.ek_data # ekdata seems to be storing something that slows things down when it carries it over
+        print('Complete')
 
 def parseArguments():
     parser = argparse.ArgumentParser()
