@@ -80,7 +80,6 @@ class splitFiles():
                     self.groupName = k
                     self.writeChannels()
             self.channelGroups = {'CW':[],'FM':[]}
-            
 
     def setChannelName(self):
         if self.channelPulse == 'CW':
