@@ -5,25 +5,25 @@
 %
 %
 %   files hardwired at the moment. Run as script.
-%    
+%
 %  Quick and dirty....  for first looks
 %
 %   Have to run init program first to set working space
 %
 %    User options/flags can be set first
-% 
+%
 % -----------------------------------------------------------
- 
-close all;  
+
+close all;
 
 % User options ----------------------------------------------
- 
+
 save_plots = 1;     % save the plots,  or not...
-GUIselect = 1;      %  This flag (1) opens GUI 
+GUIselect = 1;      %  This flag (1) opens GUI
 Intrp_shading = 1;  %  0: shading flat, 1: shading interp
 
 % -----------------------------------------------------------------
-% Select files 
+% Select files
 % ---------------------------------------------------------------
 clear Files;
 
@@ -70,26 +70,26 @@ end
 
 
 % --------------------------------------------------------------------------
- 
+
 
 first = 1;
 proc_files = 1:length(Files);
 
-for ifile = proc_files       
+for ifile = proc_files
     
     filename = Files(ifile).name;
     load([MatOutDir '/' filename]);
     fprintf('Working on %d of %d - %s\n',ifile, length(Files), filename);
     
     % load corresponding data file
-  
+    
     ndx1 = strfind(filename,'ES');
     dfilename = [filename(1:ndx1-2) '.mat'];
     load([MatOutDir '/' dfilename]);
     
-    % get ID freq from filename 
+    % get ID freq from filename
     ndx2 = strfind(filename,'.');
-    ID = filename(ndx1:ndx2-1); 
+    ID = filename(ndx1:ndx2-1);
     
     % find freq ID in data struct, not in same order
     for i = 1:length(data.channelIDs)
@@ -99,48 +99,54 @@ for ifile = proc_files
         end
     end
     
-      % 4 freqs
+    % 4 freqs
     switch ID
         case 'ES70'
-   
+            
             ClimDB = [-120 0];
             CLimDB = ([-80 -40]);
             
-        case 'ES120' 
-        
-             ClimDB = [-130 0];    % curious, looks best
-             
-        case 'ES200' 
-          
-             ClimDB = [-120 0];    % curious, looks best
-             CLimDB = ([-95 -55]);
-             
-        case 'ES333' 
-             
-             ClimDB = [-140 0];
-             ClimDB = ([-105 -65]) ;
-             
+        case 'ES120'
+            
+            ClimDB = [-130 0];    % curious, looks best
+            
+        case 'ES200'
+            
+            ClimDB = [-120 0];    % curious, looks best
+            CLimDB = ([-95 -55]);
+            
+        case 'ES333'
+            
+            ClimDB = [-140 0];
+            ClimDB = ([-105 -65]) ;
+            
         otherwise
             ClimDB = [-70 -30];
             fprintf('\t ERROR: ID %s not found', ID)
     end
-   
+    
+    
+    if isnan(CompressedVoltage) % if CW
+        plotVar = Voltage;
+    else
+        plotVar = CompressedVoltage;
+    end
     
     figure(100); clf
-    plot(Range,20*log10((abs(CompressedVoltage(:,1)'))),'k')
+    plot(Range,20*log10((abs(plotVar(:,1)'))),'k')
     title(filename,'interpreter','none');
     xlabel('Range (m)');
     grid on;
     
-    figure(101); clf 
+    figure(101); clf
     Range = data.echodata(ID_ndx).range;
     plot(Range,20*log10(abs(data.echodata(ID_ndx).complexsamples)))
     title(filename,'interpreter','none');
     xlabel('Range (m)');
     grid on;
     
-    hold on 
-    plot(Range,20*log10((abs(CompressedVoltage(:,1)'))),'k')
+    hold on
+    plot(Range,20*log10((abs(plotVar(:,1)'))),'k')
     hold off
     
     
@@ -157,26 +163,26 @@ for ifile = proc_files
     
     %  sometimes the CompressedVoltage has 1 more entry, check so doesn't
     %  crash
-    if size(CompressedVoltage,2) == length(ComputerTime)
-        pcolor(ComputerTime, Range,20*log10((abs(CompressedVoltage(:,1:end))))); shading flat; 
+    if size(plotVar,2) == length(ComputerTime)
+        pcolor(ComputerTime, Range,20*log10((abs(plotVar(:,1:end))))); shading flat;
     else
-         N = [1:length(ComputerTime)];
-         N = min(N,size(CompressedVoltage,2));
-        pcolor(ComputerTime, Range,20*log10((abs(CompressedVoltage(:,N))))); shading flat;
+        N = [1:length(ComputerTime)];
+        N = min(N,size(plotVar,2));
+        pcolor(ComputerTime, Range,20*log10((abs(plotVar(:,N))))); shading flat;
     end
     
     if Intrp_shading
         shading interp;
     end
-   
     
-    % %  pcolor(ComputerTime, Range,20*log10((abs(CompressedVoltage(:,1:end-1))))); 
+    
+    % %  pcolor(ComputerTime, Range,20*log10((abs(CompressedVoltage(:,1:end-1)))));
     datetick('x');
     axis('ij');
-   
-
+    
+    
     % for %ES200 file #2 ????
-    % pcolor(ComputerTime, Range,20*log10((abs(CompressedVoltage(:,1:end))))); shading flat     
+    % pcolor(ComputerTime, Range,20*log10((abs(CompressedVoltage(:,1:end))))); shading flat
     % datetick('x','keeplimits');
     datetick('x','keepticks');
     
@@ -190,7 +196,7 @@ for ifile = proc_files
     hcb = colorbar;
     o_ax = get(gca,'position');
     hcb.Position = [.82 .11 .04  .5];
-  
+    
     hcb.Position = [o_ax(1) + o_ax(3)+.015 .11 .03  .5];
     
     % New color scheme
@@ -200,7 +206,7 @@ for ifile = proc_files
     
     % caxis([-84 0])
     % hcb.Limits = [-80 0];
-     
+    
     set(gca, 'position',o_ax);
     % set(get(hcb,'title'),'string','dB');
     
