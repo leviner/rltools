@@ -30,8 +30,12 @@ the way raw data is stored in ek80 objects: Spectra[vertical window #][horizonta
 - 'Sv': Spectra
 - 'frequency': Vector of frequencies matching size of spectra
 
+To add:
+- Currently expects an FM split file but I guess I can just check if a freq is cw and skip it.
+- Alex suggested 'middle'-indexing, instead of using start ping/sample for the window index in the dictionary
+
 Last Update:
-14 March 2022
+15 March 2022
 Robert Levine
 
 '''
@@ -129,8 +133,8 @@ class ek80Spectra():
         self.nfft = 2**9 # make this variable, take a window length across the channels, whats the max number of datapoints, thats the minimum fft for all channels
         deltaRange = self.range[1]-self.range[0]
         maxRange = self.range.max()
-        maxRangeClipped = maxRange-75 # these shouldn't be hardcoded but it's just for clipping
-        minRange = 3 # these shouldn't be hardcoded but it's just for clipping
+        maxRangeClipped = 90#maxRange-75 # these shouldn't be hardcoded but it's just for clipping
+        minRange = 0 #3# these shouldn't be hardcoded but it's just for clipping
         self.rangeBins = np.arange(minRange,maxRangeClipped+step,step)
         self.rangeBinCenters = self.rangeBins + step/2
         self.nIndsZ = int(np.ceil(step/deltaRange))
