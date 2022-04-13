@@ -3,18 +3,24 @@ clear all; close all; clc
 addpath lib
 
 dlgTitle    = 'Outputs';
-dlg.Sv = questdlg('Output processed volume scattering?',dlgTitle,'Yes','No', 'Yes')
-dlg.TS = questdlg('Output processed TS?',dlgTitle,'Yes','No', 'Yes')
-if strfind(dlg.Sv,'Yes')
-    dlg.Echo = questdlg('Output Sv Echograms?',dlgTitle,'Yes','No', 'Yes')
+dlg.Sv = questdlg('Output processed volume scattering?',dlgTitle,'Yes','No', 'Yes');
+dlg.TS = questdlg('Output processed TS?',dlgTitle,'Yes','No', 'Yes');
+if strfind(dlg.Sv,'Yes');
+    dlg.Echo = questdlg('Output Sv Echograms?',dlgTitle,'Yes','No', 'Yes');
 end
-cal = 0 % This is a placeholde RML
 
 % prompt user for directory for results if not in workspace
 if ~exist('MatOutDir')
     outdir = uigetdir(pwd,'Select Directory for Results');
 else
-    outdir = MatOutDir
+    outdir = MatOutDir;
+end
+
+dlg.Cal = questdlg('Do you have calibration files?',dlgTitle,'Yes','No', 'Yes');
+if strfind(dlg.Cal,'Yes');
+    [filename, filepath] = uigetfile(append(outdir,'*.xml'),'select xml calibration files','MultiSelect','on');
+else
+    cal = 0; % This is a placeholde RML
 end
 
 files = dir([outdir '\*.mat']);
@@ -43,15 +49,10 @@ for i = 1:length(fbase)
     w.P = dens*9.81*w.z*1e-4; % pressure in decibars
     w.c = gsw_sound_speed(w.S,w.T,w.P);
     clear dens
-    
-    
+        
     for channel=1:Nch
         %load([outdir '\'  fchannels(channel).name]);
         range{channel,1} = data.echodata(channel,1).range;
-        
-        for ping=1:Npings
-            ComplexVoltage(:,ping) = mean(data.echodata(channel,ping).compressed,2);
-        end
         
         %time
         time{channel,1}=[data.echodata(channel,:).timestamp];
@@ -82,9 +83,9 @@ for i = 1:length(fbase)
                 
                 % Now Process Sv
                 if strmatch(dlg.Sv,'Yes')
-                    [sv] = SvCalc(channel, ComplexVoltage, para, w, range, ping);
+                    [sv, cv] = SvCalc(channel, data, para, w, range, ping);
                     Sv{channel,1}(:,ping) = sv;
-                    CV{channel,1}(:,ping) = ComplexVoltage(:,ping);
+                    CV{channel,1}(:,ping) = cv;
                 end
                 
                 if strmatch(dlg.TS,'Yes')
@@ -118,7 +119,6 @@ for i = 1:length(fbase)
             clear fout
             
         end
-        clear ComplexVoltage
     end
     
     

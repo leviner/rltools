@@ -5,7 +5,6 @@ TVG = real(40*log10(range{channel}) + 2*para{channel}.alpha*range{channel});
 
 % single beam processing
 if size(data.echodata(channel,ping).compressed,2) == 1
-    disp('Single beam TS')
     yc = nanmean(data.echodata(channel,ping).compressed,2);
     prx = (abs(yc)/(sqrt(2))).^2 * ((para{channel}.zer+para{channel}.zet)/para{channel}.zer).^2*(1/para{channel}.zet);
     sp = 10*log10(prx)  + TVG - ...
@@ -16,7 +15,6 @@ if size(data.echodata(channel,ping).compressed,2) == 1
     phiathw = Nan;
     
 elseif size(data.echodata(channel,ping).compressed,2) ==4
-    disp('4-sector TS')
     % stanard 4-quadrant split beam processing
     yc_i = data.echodata(channel,ping).compressed;
     yc      = sum(yc_i,2)/4;
