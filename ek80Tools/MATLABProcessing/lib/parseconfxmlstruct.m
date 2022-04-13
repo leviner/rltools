@@ -19,12 +19,16 @@ transceiversxml = xmldata.Children(transceiversidx);
 
 ntransceivers = length(transceiversxml.Children);
 
+ct=1;
 for i = 1:ntransceivers,
    transceiverxml = transceiversxml.Children(i);
-   transceivers(i).id =  transceiverxml.Name;
+   if isempty(transceiverxml.Children.Children) % Added to skip empty transcievers RML
+       continue
+   end
+   transceivers(ct).id =  transceiverxml.Name;
    nattributes = length(transceiverxml.Attributes);
    for j = 1:nattributes,
-       transceivers(i).(transceiverxml.Attributes(j).Name) = transceiverxml.Attributes(j).Value;
+       transceivers(ct).(transceiverxml.Attributes(j).Name) = transceiverxml.Attributes(j).Value;
    end
    
    channelsxml = transceiverxml.Children;
@@ -46,7 +50,8 @@ for i = 1:ntransceivers,
        end
        channels(j).transducer = transducer;
    end
-   transceivers(i).channels = channels;
+   transceivers(ct).channels = channels;
+    ct=ct+1;
 end  
 
 % Everything comes through as text, so convert selected numerical

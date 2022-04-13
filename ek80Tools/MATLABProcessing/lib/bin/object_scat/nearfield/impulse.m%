@@ -1,0 +1,33 @@
+% impulse response of scattering function
+
+clear
+proc_flag=1;
+scale=1;
+out_flag=2;
+n=1024;
+scat_ang=0;
+para=[n 0.1 30 1.05 1.05 scat_ang];
+[outx, outy]=fluid_fs(proc_flag,scale,out_flag,para);	% fluid
+%para=[n 0.1 40 scat_ang];
+%[outx, outy]=rgd_sft_fs(proc_flag,1,scale,out_flag,para);   % rigid/soft
+
+% coef
+N=floor(.99*n)*2;
+F=hanning(N);
+Filter=[ones(1,n-N/2) F(N/2+1:N)'];
+F=outy.*Filter;
+fac=8;					% interplation factor in time domain
+PFr=real([F zeros(1,(fac-1)*2*n) F(n:-1:1)]);
+PFi=imag([F zeros(1,(fac-1)*2*n) -F(n:-1:1)]);
+PF=PFr+i*PFi;
+ft=fliplr(fftshift(ifft(PF)));
+dt=pi/(2*fac*max(outx));
+t1=[0:fac*n-1]*dt;
+t=[-t1(fac*n:-1:2) t1 ];
+indx=fac*700:fac*1200;
+plot(t(indx),real(ft(indx)))
+xlabel('Normalized Time (t/(2  a/c)')
+axis([min(t(indx)) max(t(indx)) 1.05*max(abs(ft))*[-1 1] ])
+grid
+ylabel('Scatttering Form Function')
+title(sprintf('Scattering angle = %g (deg)',scat_ang))

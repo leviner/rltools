@@ -1,0 +1,28 @@
+ meterial             rho     Vc     Vs        source
+-----------------------------------------------------------------------
+ Armco Iron           7.7    5950   3240   Hickling, JASA 34, p. 1582 (1962)
+ Alumiunum            2.7    6420   3040        same as above
+ Beryllium            1.87  12890   8880        same as above
+ Fused silica         2.2    5968   3764        same as above
+ Heavy silicate       3.88   3080   2380        same as above
+ (flint glass)
+ Monel metal          8.9    5350   2720        same as above
+ Yellow brass         8.6    4700   2110        same as above
+ Lucite               1.18   2680   1100        same as above
+ Ice                  0.917  2743   1433        same as above
+ Lead                 11.34  1960    690        same as above
+ Tungston carbide     13.8   6860   4185   Gaunaurd and Uberall
+	       	           (Cw=1476 m/s)	JASA 73, p.1  (1983)
+ Stainlsee steel      7.9    5594   3106   Stanton, JASA 88, p.1619 (1990)
+			   (Cw=1496 m/s)
+ Soda glass            2.586  5550   3545     Throne&Campbell, JASA 92:978(1992)
+
+ meterial           g      hc     hs              source
+-----------------------------------------------------------------------
+ Stainlsee steel   7.9    3.74   2.08        Stanton, JASA 88, p.1619 (1990)
+ Tungston carbide  13.8   4.65   2.84         Gaunaurd and Uberall
+		     (6860/1476) (4185/1476)         JASA 73, p.1  (1983)
+
+ 
+
+                       
