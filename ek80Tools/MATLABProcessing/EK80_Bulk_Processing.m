@@ -9,7 +9,6 @@ if strfind(dlg.Sv,'Yes')
     dlg.Echo = questdlg('Output Sv Echograms?',dlgTitle,'Yes','No', 'Yes')
 end
 cal = 0 % This is a placeholde RML
-%%% NEED SOMETHING FOR WBT/TUBE
 
 % prompt user for directory for results if not in workspace
 if ~exist('MatOutDir')
@@ -18,20 +17,7 @@ else
     outdir = MatOutDir
 end
 
-
-
-w.z = 40; % Hold depth
-w.S = 32.6; % Hold salinity
-w.T = 4;  % Hold Temp
-w.pH = 8.1;  % Hold pH
-dens = gsw_rho(w.S,w.T,w.z); % sea water density at estimate of density
-% need to fix all of this for deep water application
-w.P = dens*9.81*w.z*1e-4; % pressure in decibars
-w.c = gsw_sound_speed(w.S,w.T,w.P);
-clear dens
-
 files = dir([outdir '\*.mat']);
-
 ct=1;
 for jj = 1:length(files)
     if isempty(strfind(files(jj).name,'_ES'))
@@ -46,6 +32,18 @@ for i = 1:length(fbase)
     
     [Nch,Npings] = size(data.echodata);
     fchannels = dir([outdir '\' fbase{1} '*ES*.mat']);
+    
+    % Set environment from header
+    w.z = data.environ.Depth; % Hold depth
+    w.S = data.environ.Salinity; % Hold salinity
+    w.T = data.environ.Temperature;  % Hold Temp
+    w.pH = data.environ.Acidity;  % Hold pH
+    dens = gsw_rho(w.S,w.T,w.z); % sea water density at estimate of density
+    % need to fix all of this for deep water application
+    w.P = dens*9.81*w.z*1e-4; % pressure in decibars
+    w.c = gsw_sound_speed(w.S,w.T,w.P);
+    clear dens
+    
     
     for channel=1:Nch
         %load([outdir '\'  fchannels(channel).name]);
