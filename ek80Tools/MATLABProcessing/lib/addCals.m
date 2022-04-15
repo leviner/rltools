@@ -30,6 +30,7 @@ for j=1:length(data.config.transceivers)
                 hold_vector(ii) = round(str2num(cell2mat(hold(ii))),4);
             end
             [data.calibration(j).(calFields{i})] = hold_vector;
+            clear hold_vector
         end
         [data.calibration(j).CalbrationEnvironment] = cal(calEntry).Calibration.Common.EnvironmentData;
     end
