@@ -3,7 +3,7 @@ function data = EK80readRawV4(fname)
 %   Version 4.1   2020
 %
 %     v4.1 will ignore any new datagram elements add to software.
-%   
+%
 %
 % Reads an entire .raw file and returns the data in various variables
 % in a structure.
@@ -27,7 +27,7 @@ mruCount = 1;
 filterCount = 1;
 headerlength = 12;
 
- % initialize hash tables
+% initialize hash tables
 channels = containers.Map;
 channelsInverse = containers.Map('KeyType', 'int32', 'ValueType', 'char');
 
@@ -55,7 +55,7 @@ else
                 xmldata = xmlreadstring(deblank(xml.text));
                 xmldata = parseXML(xmldata);
                 % disp([' - ' xmldata.Name]) % For debugging
-                                    
+                
                 % debugging
                 % fprintf('xmldata.Name: %s\n', xmldata.Name);
                 
@@ -69,31 +69,40 @@ else
                         envData(envCount) = e;
                         envCount = envCount + 1;
                         
-                      % Handle in the otherwise now....
-%                     case 'InitialParameter'         %  new 2020
-%                          p = parseInitialParamxmlstruct(xmldata);
-%                          
-%                                        
-%                     case 'PingSequence'             %  new 2020
-%                         p = parsePingSequencexmlstruct(xmldata);
-%                         
-%                                        
-%                     case 'Sensor'                   %  new 2020
-%                         p = parseSensorxmlstruct(xmldata);
-                         
+                        % Handle in the otherwise now....
+                        %                     case 'InitialParameter'         %  new 2020
+                        %                          p = parseInitialParamxmlstruct(xmldata);
+                        %
+                        %
+                        %                     case 'PingSequence'             %  new 2020
+                        %                         p = parsePingSequencexmlstruct(xmldata);
+                        %
+                        %
+                        %                     case 'Sensor'                   %  new 2020
+                        %                         p = parseSensorxmlstruct(xmldata);
+                        
                         
                     case 'Parameter'
                         p = parseparamxmlstruct(xmldata);
                         % Assumes that this datagram always comes
                         % before its associated RAW3 datagram
                         if ~channels.isKey(p.ChannelID)
+                            % We need to assign the channel num to match
+                            % the config data which is used for the rest of
+                            % the indexing RML
+                            for i =1:length(configData.transceivers)
+                                if find(strcmp({configData.transceivers(i).channels.ChannelID}, p.ChannelID)==1)
+                                    channelNum=i;
+                                end
+                            end
+                            
                             channels(p.ChannelID) = channelNum;
                             
-                               % debugging....
+                            % debugging....
                             fprintf('p.ChannelID (hdr) %s\n',p.ChannelID);
                             
                             channelsInverse(channelNum) = p.ChannelID;
-                            channelNum = channelNum + 1;
+                            channelNum = channelNum + 1; % Keeping anyway in case config is missing
                         end
                         channel = channels(p.ChannelID);  % hash to get channel #
                         if channel == 1
@@ -110,7 +119,7 @@ else
                             p.FrequencyEnd=p.Frequency;
                             p.FrequencyStart=p.Frequency;
                             p=rmfield(p,'Frequency');
-                           % p=orderfields(p,[1;2;9;10;3;4;5;6;7;8]);
+                            % p=orderfields(p,[1;2;9;10;3;4;5;6;7;8]);
                         end
                         %%%%%% ----------------------------------------
                         
@@ -119,8 +128,8 @@ else
                     otherwise
                         % debugging
                         % disp(['Unknown XML datagram with toplevel element name of ' ...
-                        %    xmldata.Name])   
-                         
+                        %    xmldata.Name])
+                        
                 end
             case 'FIL1'
                 filter = cFilter1Data;
@@ -138,13 +147,13 @@ else
                 s.timestamp = header.datetime;
                 
                 
-%                s.dR=envData.SoundSpeed * paramData(channel, end).SampleInterval/2;
-%                s.minRange=0;
-%                s.maxRange=size(s.complexsamples, 1)*s.dR;
-%                s.minCount = 1;
-%                s.maxCount = round(s.maxRange./s.dR);
-%                s.maxCount=min(s.maxCount,size(s.complexsamples, 1));
-%                s.count = s.maxCount - s.minCount + 1;
+                %                s.dR=envData.SoundSpeed * paramData(channel, end).SampleInterval/2;
+                %                s.minRange=0;
+                %                s.maxRange=size(s.complexsamples, 1)*s.dR;
+                %                s.minCount = 1;
+                %                s.maxCount = round(s.maxRange./s.dR);
+                %                s.maxCount=min(s.maxCount,size(s.complexsamples, 1));
+                %                s.count = s.maxCount - s.minCount + 1;
                 
                 sampleData(channel, pingno) = s.asStruct();
                 sampleData(channel, pingno).timestamp = header.datetime;
@@ -159,10 +168,10 @@ else
                 
                 % debugging....
                 % disp(['Unsupported datagram of type: ' header.type])
-              
+                
                 % test this out, might not need it...
                 % fread(fid, dglength-headerlength);
-                 
+                
         end
         fread(fid, 1, 'int32'); % the trailing datagram marker
     end
@@ -186,14 +195,14 @@ for i = 1:length(filterData)
     % debugging
     % fprintf('filterData(%d).ChannelID: %s\n',i,filterData(i).ChannelID);
     
-     % fixing partial files 2019
+    % fixing partial files 2019
     if ~isKey(channels,filterData(i).ChannelID)
         data = [];
         fprintf('\t Missing Key for channels.. Partial file?\n');
         return
     end
     
-   
+    
     
     channel = channels(filterData(i).ChannelID);
     f(channel, filterData(i).Stage) = filterData(i);

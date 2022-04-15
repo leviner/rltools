@@ -1,4 +1,3 @@
-
 function [gain] = getGain(data,channel)
     fnom = str2num(string(data.config.transceivers(channel).channels.transducer.Frequency));
     fc = (data.param(channel,1).FrequencyStart+data.param(channel, 1).FrequencyEnd)/2;

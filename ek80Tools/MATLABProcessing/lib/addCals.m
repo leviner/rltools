@@ -21,16 +21,21 @@ for j=1:length(data.config.transceivers)
     else
         fprintf('Calibration found for %s, added to data \n',data.config.transceivers(j).channels.transducer.TransducerName);
         
-      
+        
         calFields = fieldnames(cal(calEntry).Calibration.CalibrationResults);
         
         for i= 1:length(calFields)
-            hold = strsplit(cal(calEntry).Calibration.CalibrationResults.(calFields{i}),';');
-            for ii=1:length(hold)
-                hold_vector(ii) = round(str2num(cell2mat(hold(ii))),4);
+            hold = strsplit(string(cal(calEntry).Calibration.CalibrationResults.(calFields{i})),';');
+            if length(hold) > 1 % if FM
+                for ii=1:length(hold)
+                    hold_vector(ii) = round(str2num(cell2mat(hold(ii))),4);
+                end
+                [data.calibration(j).(calFields{i})] = hold_vector;
+                clear hold_vector
+            else %if CW
+                [data.calibration(j).(calFields{i})] = str2double(hold);
             end
-            [data.calibration(j).(calFields{i})] = hold_vector;
-            clear hold_vector
+            
         end
         [data.calibration(j).CalbrationEnvironment] = cal(calEntry).Calibration.Common.EnvironmentData;
     end

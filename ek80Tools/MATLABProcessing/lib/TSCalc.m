@@ -1,4 +1,3 @@
-
 function [sp, phialong, phiathw] = TSCalc(channel, data, para, range, ping)
 %if strmatch(dlg.TS,'Yes')
 TVG = real(40*log10(range{channel}) + 2*para{channel}.alpha*range{channel});
