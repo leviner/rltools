@@ -167,22 +167,20 @@ for i= 1:length(filename)
     
     GPStime=[]; Lat=[]; Lon=[];
     for k=1:length(data.nmea)
-        
-        
         % New for CTRiverDT  AN
         %    Just using this NEMA string only, has all the info...
-        
         if strcmp(data.nmea(k).text(1:6),'$GPRMC')
             [lat,lon,YYYY,MM,DD,GPShh,GPSmm,GPSss] = EK80_parse_nmea_GPRMC(data.nmea(k).text);
             GPStime(end+1)=datenum([YYYY' MM' DD' GPShh' GPSmm' GPSss'])';
             Lat(end+1)=lat;
             Lon(end+1)=lon;
         end
-        
-        
     end  % end of parsing nmea strings
     
-    
+    if exist('Lat','var')
+        [data.gps.Latitude] = Lat;[data.gps.Longitude] = Lon;
+    end
+        
     Nch=size(data.echodata,1);                % number of transducers
     
     % ---------------------------------------------------------------
