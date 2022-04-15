@@ -24,7 +24,7 @@
 %
 %
 %   Run the init routine first to initialize data and output space
-%  
+%
 %
 % Modified by Dezhang Chu, NOAA Fisheries, NWFSC (dezhang.chu@noaa.gov )
 % March 7, 2016
@@ -46,7 +46,7 @@ close all             % start fresh
 % if these files are all ready added, then will give a warning
 %
 
-Pool = gcp('nocreate'); 
+Pool = gcp('nocreate');
 warning('off');
 addAttachedFiles(Pool, 'EK80readRawFiles');
 addAttachedFiles(Pool, 'EK80pulseCompress');
@@ -56,35 +56,42 @@ addAttachedFiles(Pool, 'parseconfxmlstruct');
 addAttachedFiles(Pool, 'EK80_parse_nmea_GPRMC');
 addAttachedFiles(Pool, 'EK80chirp');
 addAttachedFiles(Pool, 'Save_vars');
-addAttachedFiles(Pool, 'Save_data'); 
+addAttachedFiles(Pool, 'Save_data');
 
- 
+
 % -----------------------------------------------------------------
-% Select files 
+% Select files
 % -----------------------------------------------------------------
- 
+
 [filename, filepath] = uigetfile(append(string(DataFilePath),'*.raw'),'Pick a raw data file','MultiSelect','on');
+
+dlg.Cal = questdlg('Do you have xml calibration files?','Calibration','Yes','No', 'Yes');
+if strfind(dlg.Cal,'Yes')
+    [calfilename, calfilepath] = uigetfile(append(DataFilePath,'*.xml'),'select xml calibration files','MultiSelect','on');
+    cals = parseCals(calfilename, calfilepath);
+end
+
 % GUI check...  comment out if hardwiring data files.
 % if not a cell, turn it into one, if choose 1 file, not a cell
 if ~iscell(filename)
     filename = {filename};
 end
- 
+
 % returns 0 if cancel hit
-if filename{1} == 0 
-     fprintf('\tError: File(s) not found...\n');
-     return
+if filename{1} == 0
+    fprintf('\tError: File(s) not found...\n');
+    return
 end
- 
+
 % skip files that have already been processed (RK 2021)
 match = ones(1,length(filename));
 processedfiles = dir(MatOutDir');
 filesdone = {processedfiles.name};
-for f = 1:length(filename)   
+for f = 1:length(filename)
     s = filename(f);s = s{1};s = split(s,'.');s = s(1); s = s{1};
     matches = startsWith(string(filesdone),s);
     if isempty(find(matches == 1))
-       match(f) = 0;
+        match(f) = 0;
     end
 end
 filename = filename(find(match == 0));
@@ -94,7 +101,7 @@ if isempty(filename)
 end
 
 
-% 
+%
 %  Loop over all selected files
 % ---------------------------------------------------------
 
@@ -109,7 +116,7 @@ for i= 1:length(filename)
     
     fprintf(['\t Processing file ' num2str(i) ' of ' num2str(length(filename)) '. \n']);
     %cc = cc + 1;
-  
+    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Load data
@@ -119,8 +126,8 @@ for i= 1:length(filename)
     
     % read data from single file
     data = EK80readRawFiles(rawfiles,'V4');
-     
-    % fixing partial files 2019 
+    
+    % fixing partial files 2019
     if isempty(data)
         fprintf('\t Skipping file: %s\n',rawfiles);
         continue
@@ -143,7 +150,7 @@ for i= 1:length(filename)
     
     
     
-   
+    
     % ------------------------------------------------------------
     % make GPS vectors from NMEA strings
     %
@@ -157,32 +164,32 @@ for i= 1:length(filename)
     GPStime=[]; Lat=[]; Lon=[];
     for k=1:length(data.nmea)
         
-         
+        
         % New for CTRiverDT  AN
         %    Just using this NEMA string only, has all the info...
         
         if strcmp(data.nmea(k).text(1:6),'$GPRMC')
-            [lat,lon,YYYY,MM,DD,GPShh,GPSmm,GPSss] = EK80_parse_nmea_GPRMC(data.nmea(k).text); 
+            [lat,lon,YYYY,MM,DD,GPShh,GPSmm,GPSss] = EK80_parse_nmea_GPRMC(data.nmea(k).text);
             GPStime(end+1)=datenum([YYYY' MM' DD' GPShh' GPSmm' GPSss'])';
             Lat(end+1)=lat;
             Lon(end+1)=lon;
-        end     
-         
-   
-    end  % end of parsing nmea strings    
+        end
         
-       
+        
+    end  % end of parsing nmea strings
+    
+    
     Nch=size(data.echodata,1);                % number of transducers
     
     % ---------------------------------------------------------------
     % pulse compression
     %       chu's pulse compression
     % --------------------------------------------------------------
-    % 
+    %
     for channel=1:Nch
         
-        data = EK80pulseCompress(data, channel); 
-         
+        data = EK80pulseCompress(data, channel);
+        
         close all
         
         
@@ -203,20 +210,20 @@ for i= 1:length(filename)
         %OldRange=(1:Npings)';
         %OldVolt=(1:Npings)';
         %OldComp=(1:Npings)';
-          OldRange=(1:length(data.echodata(channel,1).range))';
-          OldVolt=(1:length(data.echodata(channel,1).range))';
-          OldComp=(1:length(data.echodata(channel,1).range))'; % changed by RK 7/21/2020
+        OldRange=(1:length(data.echodata(channel,1).range))';
+        OldVolt=(1:length(data.echodata(channel,1).range))';
+        OldComp=(1:length(data.echodata(channel,1).range))'; % changed by RK 7/21/2020
         
         for ping =1:Npings
             if ~isempty(data.echodata(channel,ping).channelID)
                 
-                    datasz=size(data.echodata(channel, ping).range,1);
-                    NewRange=NaN*ones(max(datasz,size(OldRange,1)),1);
-                    NewRange(1:size(OldRange,1))=OldRange;
-                    NewRange(1:datasz) = data.echodata(channel, ping).range;
-                    OldRange=NewRange;
-
-
+                datasz=size(data.echodata(channel, ping).range,1);
+                NewRange=NaN*ones(max(datasz,size(OldRange,1)),1);
+                NewRange(1:size(OldRange,1))=OldRange;
+                NewRange(1:datasz) = data.echodata(channel, ping).range;
+                OldRange=NewRange;
+                
+                
                 if isfield(data.echodata,'compressed')
                     datasz=size(data.echodata(channel, ping).compressed,1);
                     NewComp=NaN*ones(max(datasz,size(OldComp,1)),Npings);
@@ -227,93 +234,95 @@ for i= 1:length(filename)
                     CompressedVoltage=NewComp;
                     
                 end
-            
-                %Voltage  -  New code 12/26/2018 ES333 may have single sensor 
-                 
-                    if isvector(data.echodata(channel, ping).complexsamples)
-                        datasz=length(data.echodata(channel, ping).complexsamples);
-                        NewVolt=NaN*ones(max(datasz,size(OldVolt,1)),Npings);
-                        NewVolt(1:size(OldVolt,1),1:size(OldVolt,2))=OldVolt;
-                        NewVolt(1:datasz,ping) = data.echodata(channel,ping).complexsamples;
-                        OldVolt=NewVolt;
-                    else 
-                        datasz=size(data.echodata(channel, ping).complexsamples,1);
-                        NewVolt=NaN*ones(max(datasz,size(OldVolt,1)),Npings);
-                        NewVolt(1:size(OldVolt,1),1:size(OldVolt,2))=OldVolt;
-                        NewVolt(1:datasz,ping) = mean(data.echodata(channel,ping).complexsamples,2);
-                        OldVolt=NewVolt;
-                    end   
+                
+                %Voltage  -  New code 12/26/2018 ES333 may have single sensor
+                
+                if isvector(data.echodata(channel, ping).complexsamples)
+                    datasz=length(data.echodata(channel, ping).complexsamples);
+                    NewVolt=NaN*ones(max(datasz,size(OldVolt,1)),Npings);
+                    NewVolt(1:size(OldVolt,1),1:size(OldVolt,2))=OldVolt;
+                    NewVolt(1:datasz,ping) = data.echodata(channel,ping).complexsamples;
+                    OldVolt=NewVolt;
+                else
+                    datasz=size(data.echodata(channel, ping).complexsamples,1);
+                    NewVolt=NaN*ones(max(datasz,size(OldVolt,1)),Npings);
+                    NewVolt(1:size(OldVolt,1),1:size(OldVolt,2))=OldVolt;
+                    NewVolt(1:datasz,ping) = mean(data.echodata(channel,ping).complexsamples,2);
+                    OldVolt=NewVolt;
+                end
                 
             end
         end
-                        Range=NewRange;
-                        Voltage=NewVolt;
-                        
-       
+        Range=NewRange;
+        Voltage=NewVolt;
         
-
+        
+        
+        
         % ----------------------------------------------------
         %     save data in mat files
         % ----------------------------------------------------
-         
-            ndx1 = strfind(ChannelID,'ES');
-            %ndx2 = strfind(ChannelID,'-'); 
-            %ndx2 = ndx2(min(find(ndx2>=ndx1)))-1;
-            %ID = ChannelID(ndx1:ndx2);
-            %ID = ChannelID(ndx1(1):ndx2(2)-1); % RK added and commented out previous 2 lines 7/21/2020
-            ID = ChannelID(ndx1:end-2); % edited by Bassett on 2/14/22
-            StrName = char(filename{i}); StrName = StrName(1:end-4);
- 
-       % COMMENT OUT THESE LINES IF RUNNING PARALLEL
-%          if ~exist('GPStime','var') % Added by RK 6/2021
-%              GPStime = [];
-%          elseif ~exist('Lat','var')
-%              Lat = [];
-%          elseif ~exist('Lon','var')
-%              Lon = [];
-%          end
+        
+        ndx1 = strfind(ChannelID,'ES');
+        %ndx2 = strfind(ChannelID,'-');
+        %ndx2 = ndx2(min(find(ndx2>=ndx1)))-1;
+        %ID = ChannelID(ndx1:ndx2);
+        %ID = ChannelID(ndx1(1):ndx2(2)-1); % RK added and commented out previous 2 lines 7/21/2020
+        ID = ChannelID(ndx1:end-2); % edited by Bassett on 2/14/22
+        StrName = char(filename{i}); StrName = StrName(1:end-4);
+        
+        % COMMENT OUT THESE LINES IF RUNNING PARALLEL
+        %          if ~exist('GPStime','var') % Added by RK 6/2021
+        %              GPStime = [];
+        %          elseif ~exist('Lat','var')
+        %              Lat = [];
+        %          elseif ~exist('Lon','var')
+        %              Lon = [];
+        %          end
+        
+        
+        % New 2019  AEN
+        %  Checking for Compressed Voltage and writing accordingly
+        
+        if isfield(data.echodata,'compressed')
             
             
-            % New 2019  AEN
-            %  Checking for Compressed Voltage and writing accordingly
+            Npings=size(CompressedVoltage,2);
             
-            if isfield(data.echodata,'compressed')
-                
-                
-                Npings=size(CompressedVoltage,2);
-                
-                S = [MatOutDir StrName '_',ID,'.mat' ];
-                disp(['Saving ',S])
-                
-                Save_vars(S,ChannelID,Npings,...
-                    GPStime,Lat,Lon,ComputerTime,FreqStart,FreqEnd,...
-                    Range,Voltage,CompressedVoltage);
-                
-            else
-                
-               Npings=size(Voltage,2);
-               CompressedVoltage = NaN*length(Voltage);
-                
-                S = [MatOutDir StrName '_',ID,'.mat' ];
-                disp(['Saving ',S])
-                
-                Save_vars(S,ChannelID,Npings,...
-                    GPStime,Lat,Lon,ComputerTime,FreqStart,FreqEnd,...
-                    Range,Voltage,CompressedVoltage);  
-                
-            end
-               
+            S = [MatOutDir StrName '_',ID,'.mat' ];
+            disp(['Saving ',S])
+            
+            Save_vars(S,ChannelID,Npings,...
+                GPStime,Lat,Lon,ComputerTime,FreqStart,FreqEnd,...
+                Range,Voltage,CompressedVoltage);
+            
+        else
+            
+            Npings=size(Voltage,2);
+            CompressedVoltage = NaN*length(Voltage);
+            
+            S = [MatOutDir StrName '_',ID,'.mat' ];
+            disp(['Saving ',S])
+            
+            Save_vars(S,ChannelID,Npings,...
+                GPStime,Lat,Lon,ComputerTime,FreqStart,FreqEnd,...
+                Range,Voltage,CompressedVoltage);
+            
+        end
+        
     end
-
-   
-  S = [MatOutDir StrName '.mat' ]; 
-  Save_data(S,data);
-
-  fclose('all');
-  disp(['     Done with ',StrName]);
-   
+    if strfind(dlg.Cal,'Yes')
+        data = addCals(data, cals);
+    end
     
- 
+    S = [MatOutDir StrName '.mat' ];
+    Save_data(S,data);
+    
+    fclose('all');
+    disp(['     Done with ',StrName]);
+    
+    
+    
 end  % end loop over files
 
 

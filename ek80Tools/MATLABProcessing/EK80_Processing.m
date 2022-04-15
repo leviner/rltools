@@ -16,13 +16,6 @@ else
     outdir = MatOutDir;
 end
 
-dlg.Cal = questdlg('Do you have calibration files?',dlgTitle,'Yes','No', 'Yes');
-if strfind(dlg.Cal,'Yes');
-    [filename, filepath] = uigetfile(append(outdir,'*.xml'),'select xml calibration files','MultiSelect','on');
-else
-    cal = 0; % This is a placeholde RML
-end
-
 files = dir([outdir '\*.mat']);
 ct=1;
 for jj = 1:length(files)
