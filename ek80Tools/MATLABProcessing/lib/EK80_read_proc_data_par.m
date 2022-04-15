@@ -45,18 +45,20 @@ close all             % start fresh
 
 % if these files are all ready added, then will give a warning
 %
-
-Pool = gcp('nocreate');
-warning('off');
-addAttachedFiles(Pool, 'EK80readRawFiles');
-addAttachedFiles(Pool, 'EK80pulseCompress');
-addAttachedFiles(Pool, 'EK80readRawV4');
-addAttachedFiles(Pool, 'EK80calcSentSignal');
-addAttachedFiles(Pool, 'parseconfxmlstruct');
-addAttachedFiles(Pool, 'EK80_parse_nmea_GPRMC');
-addAttachedFiles(Pool, 'EK80chirp');
-addAttachedFiles(Pool, 'Save_vars');
-addAttachedFiles(Pool, 'Save_data');
+if (exist('Pool') && Pool ~= 0)
+    fprintf('Running Parallel\n');
+    Pool = gcp('nocreate');
+    warning('off');
+    addAttachedFiles(Pool, 'EK80readRawFiles');
+    addAttachedFiles(Pool, 'EK80pulseCompress');
+    addAttachedFiles(Pool, 'EK80readRawV4');
+    addAttachedFiles(Pool, 'EK80calcSentSignal');
+    addAttachedFiles(Pool, 'parseconfxmlstruct');
+    addAttachedFiles(Pool, 'EK80_parse_nmea_GPRMC');
+    addAttachedFiles(Pool, 'EK80chirp');
+    addAttachedFiles(Pool, 'Save_vars');
+    addAttachedFiles(Pool, 'Save_data');
+end
 
 
 % -----------------------------------------------------------------
@@ -70,6 +72,8 @@ if strfind(dlg.Cal,'Yes')
     [calfilename, calfilepath] = uigetfile(append(DataFilePath,'*.xml'),'select xml calibration files','MultiSelect','on');
     cals = parseCals(calfilename, calfilepath);
 end
+
+dlg.nFiles = questdlg('Save separate files for each channel?','Outputs','Yes','No', 'No');
 
 % GUI check...  comment out if hardwiring data files.
 % if not a cell, turn it into one, if choose 1 file, not a cell
@@ -125,7 +129,7 @@ for i= 1:length(filename)
     
     
     % read data from single file
-    data = EK80readRawFiles(rawfiles,'V4');
+    data = EK80readRawFiles(rawfiles,Version);
     
     % fixing partial files 2019
     if isempty(data)
@@ -283,31 +287,32 @@ for i= 1:length(filename)
         
         % New 2019  AEN
         %  Checking for Compressed Voltage and writing accordingly
-        
-        if isfield(data.echodata,'compressed')
-            
-            
-            Npings=size(CompressedVoltage,2);
-            
-            S = [MatOutDir StrName '_',ID,'.mat' ];
-            disp(['Saving ',S])
-            
-            Save_vars(S,ChannelID,Npings,...
-                GPStime,Lat,Lon,ComputerTime,FreqStart,FreqEnd,...
-                Range,Voltage,CompressedVoltage);
-            
-        else
-            
-            Npings=size(Voltage,2);
-            CompressedVoltage = NaN*length(Voltage);
-            
-            S = [MatOutDir StrName '_',ID,'.mat' ];
-            disp(['Saving ',S])
-            
-            Save_vars(S,ChannelID,Npings,...
-                GPStime,Lat,Lon,ComputerTime,FreqStart,FreqEnd,...
-                Range,Voltage,CompressedVoltage);
-            
+        if strfind(dlg.nFiles,'Yes') % Only save separate files for each channel if requested RML
+            if isfield(data.echodata,'compressed')
+                
+                
+                Npings=size(CompressedVoltage,2);
+                
+                S = [MatOutDir StrName '_',ID,'.mat' ];
+                disp(['Saving ',S])
+                
+                Save_vars(S,ChannelID,Npings,...
+                    GPStime,Lat,Lon,ComputerTime,FreqStart,FreqEnd,...
+                    Range,Voltage,CompressedVoltage);
+                
+            else
+                
+                Npings=size(Voltage,2);
+                CompressedVoltage = NaN*length(Voltage);
+                
+                S = [MatOutDir StrName '_',ID,'.mat' ];
+                disp(['Saving ',S])
+                
+                Save_vars(S,ChannelID,Npings,...
+                    GPStime,Lat,Lon,ComputerTime,FreqStart,FreqEnd,...
+                    Range,Voltage,CompressedVoltage);
+                
+            end
         end
         
     end
@@ -316,6 +321,7 @@ for i= 1:length(filename)
     end
     
     S = [MatOutDir StrName '.mat' ];
+    disp(['Saving ',S])
     Save_data(S,data);
     
     fclose('all');

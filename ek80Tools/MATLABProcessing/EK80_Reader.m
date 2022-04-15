@@ -28,14 +28,7 @@ fprintf('Start Parallelization\n');
 %
 %   This may take awhile... so be patient
 % ---------------------------------------------------------
-    
-    if (exist('Pool') && Pool ~= 0)    % if Pool has workers do parallel
-        fprintf('Running Parallel\n');
-        EK80_read_proc_data_par;     
-    else                              % not parallel
-        fprintf('Running Serial\n');        
-        EK80_read_proc_data;          
-    end
+EK80_read_proc_data_par
 %% --------------------------------------------------------
 %   OPTIONAL:  Plot all images from .mat files
 %
