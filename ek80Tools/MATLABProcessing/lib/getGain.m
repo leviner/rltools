@@ -12,7 +12,7 @@ else
 end
 if ~isa(data.config.transceivers(channel).channels.transducer.Gain,'double')
     g = strsplit(data.config.transceivers(channel).channels.transducer.Gain,';');
-    for i=1:length(pd)
+    for i=1:length(g)
         g_table(i) = round(str2num(cell2mat(g(i))),4);
     end
 else
