@@ -67,13 +67,12 @@ end
 
 [filename, filepath] = uigetfile(append(string(DataFilePath),'*.raw'),'Pick a raw data file','MultiSelect','on');
 
+dlg.nFiles = questdlg('Save separate files for each channel?','Outputs','Yes','No', 'No');
 dlg.Cal = questdlg('Do you have xml calibration files?','Calibration','Yes','No', 'Yes');
 if strfind(dlg.Cal,'Yes')
     [calfilename, calfilepath] = uigetfile(append(DataFilePath,'*.xml'),'select xml calibration files','MultiSelect','on');
     cals = parseCals(calfilename, calfilepath);
 end
-
-dlg.nFiles = questdlg('Save separate files for each channel?','Outputs','Yes','No', 'No');
 
 % GUI check...  comment out if hardwiring data files.
 % if not a cell, turn it into one, if choose 1 file, not a cell
@@ -180,7 +179,7 @@ for i= 1:length(filename)
     if exist('Lat','var')
         [data.gps.Latitude] = Lat;[data.gps.Longitude] = Lon;
     end
-        
+    
     Nch=size(data.echodata,1);                % number of transducers
     
     % ---------------------------------------------------------------
@@ -264,28 +263,18 @@ for i= 1:length(filename)
         % ----------------------------------------------------
         %     save data in mat files
         % ----------------------------------------------------
-        
-        ndx1 = strfind(ChannelID,'ES');
-        %ndx2 = strfind(ChannelID,'-');
-        %ndx2 = ndx2(min(find(ndx2>=ndx1)))-1;
-        %ID = ChannelID(ndx1:ndx2);
-        %ID = ChannelID(ndx1(1):ndx2(2)-1); % RK added and commented out previous 2 lines 7/21/2020
-        ID = ChannelID(ndx1:end-2); % edited by Bassett on 2/14/22
         StrName = char(filename{i}); StrName = StrName(1:end-4);
-        
-        % COMMENT OUT THESE LINES IF RUNNING PARALLEL
-        %          if ~exist('GPStime','var') % Added by RK 6/2021
-        %              GPStime = [];
-        %          elseif ~exist('Lat','var')
-        %              Lat = [];
-        %          elseif ~exist('Lon','var')
-        %              Lon = [];
-        %          end
-        
-        
-        % New 2019  AEN
-        %  Checking for Compressed Voltage and writing accordingly
         if strfind(dlg.nFiles,'Yes') % Only save separate files for each channel if requested RML
+            ndx1 = strfind(ChannelID,'ES');
+            %ndx2 = strfind(ChannelID,'-');
+            %ndx2 = ndx2(min(find(ndx2>=ndx1)))-1;
+            %ID = ChannelID(ndx1:ndx2);
+            %ID = ChannelID(ndx1(1):ndx2(2)-1); % RK added and commented out previous 2 lines 7/21/2020
+            ID = ChannelID(ndx1:end-2); % edited by Bassett on 2/14/22
+            
+            % New 2019  AEN
+            %  Checking for Compressed Voltage and writing accordingly
+            
             if isfield(data.echodata,'compressed')
                 
                 

@@ -1,14 +1,15 @@
 
-function [sp, phialong, phiathw] = TSCalc(channel, data, para, w, range, ping)
+function [sp, phialong, phiathw] = TSCalc(channel, data, para, range, ping)
 %if strmatch(dlg.TS,'Yes')
 TVG = real(40*log10(range{channel}) + 2*para{channel}.alpha*range{channel});
-
+dens = gsw_rho(data.environ.Salinity,data.environ.Temperature,data.environ.Depth);
+c = gsw_sound_speed(data.environ.Salinity,data.environ.Temperature,dens*9.81*data.environ.Depth*1e-4);
 % single beam processing
 if size(data.echodata(channel,ping).compressed,2) == 1
     yc = nanmean(data.echodata(channel,ping).compressed,2);
     prx = (abs(yc)/(sqrt(2))).^2 * ((para{channel}.zer+para{channel}.zet)/para{channel}.zer).^2*(1/para{channel}.zet);
     sp = 10*log10(prx)  + TVG - ...
-        10*log10(para{channel}.ptx *(w.c/para{channel}.fc)^2/(16*pi^2)) - ...
+        10*log10(para{channel}.ptx *(c/para{channel}.fc)^2/(16*pi^2)) - ...
         2*(para{channel}.G) + 20*log10(para{channel}.fc/para{channel}.fnom);
     sp(find(sp < -999)) = 0; % replace -Inf values
     phialong = NaN;
@@ -29,7 +30,7 @@ elseif size(data.echodata(channel,ping).compressed,2) ==4
     prx = (abs(yc)/(sqrt(2))).^2 * ((para{channel}.zer+para{channel}.zet)/para{channel}.zer).^2*(1/para{channel}.zet);
     
     sp = 10*log10(prx)  + TVG - ...
-        10*log10(para{channel}.ptx *(w.c/para{channel}.fc)^2/(16*pi^2)) - ...
+        10*log10(para{channel}.ptx *(c/para{channel}.fc)^2/(16*pi^2)) - ...
         2*(para{channel}.G) + 20*log10(para{channel}.fc/para{channel}.fnom);
     sp(find(sp < -999)) = 0; % replace -Inf values
     
