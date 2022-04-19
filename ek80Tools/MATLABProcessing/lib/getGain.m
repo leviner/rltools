@@ -13,7 +13,7 @@ if ~isempty(data.calibration(channel).Gain)
     
 else
     if ~isa(data.config.transceivers(channel).channels.PulseDurationFM,'double')
-        pd = strsplit(data.config.transceivers(channel).channels.PulseDusrationFM,';');
+        pd = strsplit(data.config.transceivers(channel).channels.PulseDurationFM,';');
         for i=1:length(pd)
             pd_table(i) = round(str2num(cell2mat(pd(i))),4);
         end

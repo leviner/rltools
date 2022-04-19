@@ -83,7 +83,7 @@ for i = 1:length(fbase)
         
         if strfind(dlg.Echo,'Yes')
             % [~,fnm,~] =fileparts(rawfiles);
-            fout = ['Sv_' fbase{i}];
+            fout = strcat('Sv_',fbase{i},'_',string(para{channel}.fnom/1000),'kHz');
             h = figure('visible','off','units','inch','position',[2,2,6,3]);
             imagesc(1:Npings,range{channel}, Sv{channel})
             xlabel('Ping','fontweight','bold')
@@ -98,7 +98,7 @@ for i = 1:length(fbase)
             if ~exist([outdir '\Figures\'])
                 mkdir([outdir '\Figures\'])
             end
-            saveas(h,[outdir '\Figures\' fout],'png');
+            saveas(h,strcat(outdir,'\Figures\',fout),'png');
             clear fout
             
         end
