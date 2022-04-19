@@ -1,13 +1,19 @@
 function [gain] = getGain(data,channel)
-    fnom = str2num(string(data.config.transceivers(channel).channels.transducer.Frequency));
-    fc = (data.param(channel,1).FrequencyStart+data.param(channel, 1).FrequencyEnd)/2;
-    
+fnom = str2num(string(data.config.transceivers(channel).channels.transducer.Frequency));
+fc = (data.param(channel,1).FrequencyStart+data.param(channel, 1).FrequencyEnd)/2;
+
 if ~isempty(data.calibration(channel).Gain)
-    gain = interp1(data.calibration(channel).Frequency,data.calibration(channel).Gain,fnom);   
-    gain = gain + 20*log10(fc/fnom);
+    
+    if data.param(channel,1).PulseForm == 1
+        gain = interp1(data.calibration(channel).Frequency,data.calibration(channel).Gain,fnom);
+        gain = gain + 20*log10(fc/fnom);
+    else
+        gain = data.calibration(channel).Gain;
+    end
+    
 else
     if ~isa(data.config.transceivers(channel).channels.PulseDurationFM,'double')
-        pd = strsplit(data.config.transceivers(channel).channels.PulseDurationFM,';');
+        pd = strsplit(data.config.transceivers(channel).channels.PulseDusrationFM,';');
         for i=1:length(pd)
             pd_table(i) = round(str2num(cell2mat(pd(i))),4);
         end
