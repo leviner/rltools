@@ -46,7 +46,7 @@ if GUIselect
     for i=1:length(filename)
         
         % make sure it is a file that contains transducer data 'ES'
-        if contains(filename{i},'ES')
+        if contains(filename{i},'*.mat')
             fct = fct + 1;
             Files(fct) = dir([filepath filename{i}]);
         end
@@ -55,7 +55,7 @@ if GUIselect
     
 else
     
-    Files = dir([MatOutDir '*ES*.mat']);
+    Files = dir([MatOutDir '*.mat']);
     
 end
 

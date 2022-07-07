@@ -6,6 +6,7 @@ addpath('lib/bin')
 dlgTitle    = 'Outputs';
 dlg.Sv = questdlg('Output processed volume scattering?',dlgTitle,'Yes','No', 'Yes');
 dlg.TS = questdlg('Output processed TS?',dlgTitle,'Yes','No', 'Yes');
+
 if strfind(dlg.Sv,'Yes');
     dlg.Echo = questdlg('Output Sv Echograms?',dlgTitle,'Yes','No', 'Yes');
 end

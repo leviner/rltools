@@ -4,8 +4,8 @@ clear all; close all; clc
 % read in broadband GOA data and calculate Sv(f) in small spatial bins 
 % with window lenghts, overlaps, etc. specified below
 addpath bin
-win.l = 1;       % window length
-win.step = 0.5; % window step size
+win.l = 1;       % window length in pings
+win.step = 0.5; % window step size in meters
 win.nfft = 2^9; % current FFT size = 512 points (about twice as long as number in longest window)
 n = win.nfft;
 load('D:\FMProcessing\EK80_matlab_software_2021\testin\GOA_BB_Cals.mat')
