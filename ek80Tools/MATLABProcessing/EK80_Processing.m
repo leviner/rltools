@@ -6,6 +6,7 @@ addpath('lib/bin')
 dlgTitle    = 'Outputs';
 dlg.Sv = questdlg('Output processed volume scattering?',dlgTitle,'Yes','No', 'Yes');
 dlg.TS = questdlg('Output processed TS?',dlgTitle,'Yes','No', 'Yes');
+
 if strfind(dlg.Sv,'Yes');
     dlg.Echo = questdlg('Output Sv Echograms?',dlgTitle,'Yes','No', 'Yes');
 end
@@ -93,7 +94,7 @@ for i = 1:length(fbase)
             hcb=colorbar;
             ylabel(hcb,'Sv [dB re 1/m]','fontweight','bold')
             set(gca,'linewidth',2)
-            cmap = crameri('oslo',50);
+            cmap = 'jet';%crameri('oslo',50);
             colormap(cmap);
             if ~exist([outdir '\Figures\'])
                 mkdir([outdir '\Figures\'])
