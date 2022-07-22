@@ -1,7 +1,8 @@
 clear all; close all; clc
-addpath bin
+addpath lib
+addpath('lib/bin')
 
-prompt = {'Enter bin width in pings','Enter bin depth in meters'};
+prompt = {'Enter window width in pings','Enter window depth in meters'};
 test = inputdlg(prompt);
 
 win.l = str2num(test{1});       % window length in pings
@@ -46,7 +47,7 @@ for iii = 1:length(fn)
     clear Spec f F
     for j = 1:length(startPings) % for each ping
         for jj = 1:length(win.r) % for each range bin
-            waitbar(j/length([1:win.l:nPings]),bar,['Calculating spectra for each ' num2str(win.l) ' ping by ' num2str(win.step) ' m bin\n For file ' iii ' of ' length(fn)]) ;
+            waitbar(j/length([1:win.l:nPings]),bar,['Calculating spectra for each ' num2str(win.l) ' ping by ' num2str(win.step) ' m bin ' newline 'for file ' num2str(iii) ' of ' num2str(length(fn))]) ;
             for jjj = 2:nChannels % for each channel
                 if isempty(CVAll{jjj,1})
                     svtmp{jjj} = NaN;
