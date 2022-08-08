@@ -74,6 +74,9 @@ class ek80Spectra():
         
     def calcSpectra(self):
         for self.freq in self.freqs: # For each frequency...
+            if self.ek80.get_channel_data(frequencies=self.freq)[self.freq][0].is_cw():
+                print('Skipping ', str(self.freq),', only CW data found.')
+                continue
             try: # lets check to see if we have any cal data
                 self.calFile = [cf for cf in self.calFiles if str(int(self.freq)) in cf][0]
                 print('Calculating spectra for ', self.freq)
@@ -130,10 +133,10 @@ class ek80Spectra():
         else:
             self.nwinX = np.arange(int(np.ceil(self.data.n_pings/self.windowX)))
         step = self.windowZ # this is in meters
-        self.nfft = 2**9 # make this variable, take a window length across the channels, whats the max number of datapoints, thats the minimum fft for all channels
+        self.nfft = 2**10 # make this variable, take a window length across the channels, whats the max number of datapoints, thats the minimum fft for all channels
         deltaRange = self.range[1]-self.range[0]
         maxRange = self.range.max()
-        maxRangeClipped = 90#maxRange-75 # these shouldn't be hardcoded but it's just for clipping
+        maxRangeClipped = maxRange-75 # these shouldn't be hardcoded but it's just for clipping
         minRange = 0 #3# these shouldn't be hardcoded but it's just for clipping
         self.rangeBins = np.arange(minRange,maxRangeClipped+step,step)
         self.rangeBinCenters = self.rangeBins + step/2
