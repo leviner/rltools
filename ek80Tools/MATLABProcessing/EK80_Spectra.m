@@ -1,15 +1,16 @@
 clear all; close all; clc
 addpath lib
 addpath('lib/bin')
+addpath('lib/bin/gsw')
 
 prompt = {'Enter window width in pings','Enter window depth in meters'};
 test = inputdlg(prompt);
 
 win.l = str2num(test{1});       % window length in pings
 win.step = str2num(test{2});   % window step size in meters
-win.nfft = 2^9; % current FFT size = 512 points (about twice as long as number in longest window)
-n = win.nfft;
-bar = waitbar(0,'Getting ready...') ;
+win.nfft = 2^10; % current FFT size = 1024 points (about twice as long as number in longest window)
+
+
 [fn, filepath] = uigetfile('*.mat','Pick a raw data file','MultiSelect','on');
 outdir = uigetdir(pwd,'Select Directory for Results');
 if isstr(fn), fn={fn}; end  % convert char string to cellstr
@@ -48,8 +49,9 @@ for iii = 1:length(fn)
     for j = 1:length(startPings) % for each ping
         for jj = 1:length(win.r) % for each range bin
             waitbar(j/length([1:win.l:nPings]),bar,['Calculating spectra for each ' num2str(win.l) ' ping by ' num2str(win.step) ' m bin ' newline 'for file ' num2str(iii) ' of ' num2str(length(fn))]) ;
-            for jjj = 2:nChannels % for each channel
-                if isempty(CVAll{jjj,1})
+            for jjj = 1:nChannels % for each channel
+                ranges = data.echodata(jjj,1).range+(0-min(data.echodata(jjj,1).range));
+                if data.param(jjj,1).PulseForm == 0
                     svtmp{jjj} = NaN;
                     f{jjj} = NaN;
                     continue
@@ -63,14 +65,14 @@ for iii = 1:length(fn)
                     CVwin = mean(CVAll{jjj,1}(:,startPings(j):nPings),2);
                 end
                 
-                CVwinR = CVwin((data.echodata(jjj,1).range < win.r(jj)+win.step) &(data.echodata(jjj,1).range >= win.r(jj)));
-                specvec = CVwinR.*data.echodata(jjj,1).range(((data.echodata(jjj,1).range < win.r(jj)+win.step)&(data.echodata(jjj,1).range >= win.r(jj))));
+                CVwinR = CVwin((ranges < win.r(jj)+win.step) &(ranges >= win.r(jj)));
+                specvec = CVwinR.*ranges(((ranges < win.r(jj)+win.step)&(ranges >= win.r(jj))));
                 b = tukeywin(length(specvec),0.1)./(norm(tukeywin(length(specvec),0.1))./sqrt(length(specvec)));
-                specvec = specvec.* b;
-                specvec = fft(specvec,n);                
+                specvec = specvec.*b;
+                specvec = fft(specvec,win.nfft);                
                 
-                fsdec = (data.param(jjj, 1).FrequencyStart+data.param(jjj, 1).FrequencyEnd)/2;
-                
+                fsdec = 1/data.param(jjj, 1).SampleInterval;
+               
                 
                 if isstr(data.config.transceivers(jjj).channels.transducer.Frequency)
                     fnom = str2num(data.config.transceivers(jjj).channels.transducer.Frequency);
@@ -79,7 +81,7 @@ for iii = 1:length(fn)
                 end
                 
                 [ftmp, FFTvec_tmp] = freqtransf(specvec,fsdec,fnom);
-                alphaf =  alpha_sea(data.environ.Depth,data.environ.Salinity,data.environ.Temperature,data.environ.Acidity,fsdec/1000);
+                alphaf =  alpha_sea(data.environ.Depth,data.environ.Salinity,data.environ.Temperature,data.environ.Acidity,ftmp/1000);
                 calf = data.calibration(jjj).Frequency;
                 calg = data.calibration(jjj).Gain;
                 dens = gsw_rho(data.environ.Salinity,data.environ.Temperature,data.environ.Depth);
@@ -106,11 +108,15 @@ for iii = 1:length(fn)
                     10.*log10(c^3./(32.*pi^2.*ftmp.^2));
                 svtmp{jjj} = sv';
                 f{jjj} = ftmp';
+               if j == 1
+               Gs{jjj}=G;
+               end
                 
                 
             end
             Spec{jj,j} = [svtmp{:}];
             F{jj,j} =  [f{:}];
+
             
         end
     end
