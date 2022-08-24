@@ -2,6 +2,7 @@
 clear all; close all; clc
 addpath lib
 addpath('lib/bin')
+addpath('lib/bin/gsw')
 
 dlgTitle    = 'Outputs';
 dlg.Sv = questdlg('Output processed volume scattering?',dlgTitle,'Yes','No', 'Yes');
