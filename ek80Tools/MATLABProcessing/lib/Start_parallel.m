@@ -25,7 +25,7 @@ end
 
 max_workers = 56;
 
-MyCluster = parcluster(parallel.defaultClusterProfile);
+MyCluster = parallel.defaultProfile;
 maxdesired_workers = MyCluster.NumWorkers;
  
 if (exist('Pool','var') && Pool.NumWorkers == Nproc)

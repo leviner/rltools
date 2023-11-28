@@ -19,7 +19,7 @@ clear; close all
 Version = 'V4';    % 2020+, 'V3' can be used for 2016-2019 EK80 filetypes
 
 % If running in parallel, default is 4 workers
-Num_parallel_workers =  4; % 32 ; % 0 can be used to specify no parallel
+Num_parallel_workers = 0;% 4; % 32 ; % 0 can be used to specify no parallel
 
 %----------------- Setup folders -------------------------%
 WorkDir  = [pwd '\'];   % MUST end with slash 

@@ -25,6 +25,7 @@ maxr = [];
 for i=1:nChannels
     maxr = [maxr data.echodata(i,1).maxRange];
 end
+
 minr = 0;maxr = min(maxr);
 win.r = [minr:win.step:maxr];
 win.meanrange = win.r+(win.r(2)-win.r(1))/2;
@@ -108,7 +109,6 @@ for iii = 1:length(fn)
                 if j == 1
                     Gs{jjj}=G;
                 end
-
 
             end
             Spec{jj,j} = [svtmp{:}];

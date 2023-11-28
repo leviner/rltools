@@ -19,8 +19,8 @@ EK80_init
 %
 %   Num_parallel_workers set in init file        
 % ----------------------------------------------------------
-fprintf('Start Parallelization\n');
-    Pool = Start_parallel(Num_parallel_workers);
+%fprintf('Start Parallelization\n');
+%    Pool = Start_parallel(Num_parallel_workers);
 %% --------------------------------------------------------
 % read, pulsecompress, save data in .mat files
 % 
