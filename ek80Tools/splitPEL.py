@@ -19,7 +19,7 @@ class splitFiles():
     .raw file with an additional suffix to an output directory. Additional wrapping 
     provides the iterating through multiple channels/files.
 
-    usage: splitPEL.py [-h] [--out_dir OUT_DIR] [--suffix SUFFIX] in_dir
+    usage: splitPEL.py [-h] [--out_dir OUT_DIR] [--read_suffix READ_SUFFIX] in_dir
 
     positional arguments:
     in_dir             Input directory of raw files
@@ -29,16 +29,21 @@ class splitFiles():
     --in_files IN_FILES  define a single or comma-separated list of filenames rather than iterating through all files. 
                             If a filename has whitespace you must use double quotes around it
     --out_dir OUT_DIR    Output directory for split files. Default is new directory 'splitFiles' in input directory
-    --suffix SUFFIX      File suffix used to identify multichannel/FM file type. E.g., if all target files end in 
-                            ..._2.raw, use --suffix=_2
-    --prefix PREFIX     File prefix used to identify multichannel/FM file type. E.g., if all target files start in 
-                            DY_FM..., use --prefix=DY_FM
+    --read_suffix READ_SUFFIX      File suffix used to identify multichannel/FM file type. E.g., if all target files end in 
+                            ..._2.raw, use --read_suffix=_2
+    --read_prefix READ_PREFIX     File prefix used to identify multichannel/FM file type. E.g., if all target files start in 
+                            DY_FM..., use --read_prefix=DY_FM
     --group GROUP       If True, create new files containing all channels with same pulse form
     --within_channel WITHIN_CHANNEL If True, split files where multiple pulse forms exist in a single channel
-
+    --overwrite OVERWRITE If True, process every file found, regardless of if basename already exists in output
+    --ignore_last IGNORE_LAST If True, process every file except the one most recently modified. This is for real-time survey applications.
+    
     A major thing to clean up is hitting the 'reset' button between each file. Some 
     of the init assignments need to be done for ever file in a file list so some stuff 
     should get moved around. Lots of cleaning to do.
+
+    todo
+    - add write suffix option
 
 '''
 
@@ -51,7 +56,20 @@ class splitFiles():
         if args.in_files:
             self.in_files = [self.in_dir+'/'+f for f in args.in_files.split(',')]
         else:
-            self.in_files = glob(self.in_dir+'/'+args.prefix+'*'+args.suffix+'.raw')
+            self.in_files = glob(self.in_dir+'/'+args.read_prefix+'*'+args.read_suffix+'.raw')
+        
+        print('Input contains '+str(len(self.in_files))+' files')
+        if not args.overwrite:
+            for file in sorted(self.in_files):
+                if glob(self.out_dir+(os.path.splitext(os.path.basename(file))[0])+'*'):
+                    self.in_files.remove(file)
+            print(str(len(self.in_files))+' files unprocessed')
+
+        if args.ignore_last:
+            latest_file = max(self.in_files, key=os.path.getctime)
+            print('Ignoring latest file: '+latest_file+' (most recent modification time)')
+            self.in_files.remove(latest_file)
+
         if not os.path.exists(self.out_dir):
             os.makedirs(self.out_dir)
         self.group = args.group
@@ -165,12 +183,14 @@ def parseArguments():
             iterating through all files. If a filename has whitespace you must use double quotes around it", type=str, default=None)
     parser.add_argument("--out_dir", help="Output directory for split files. \
             Default is new directory 'splitFiles' in input directory", type=str, default=None)
-    parser.add_argument("--prefix", help="File prefix used to identify multichannel/FM file type. \
-            E.g., if all target files start in DY_FM..., use --prefix=DY_FM", type=str, default='')
-    parser.add_argument("--suffix", help="File suffix used to identify multichannel/FM file type. \
-            E.g., if all target files end in ..._2.raw, use --suffix=_2", type=str, default='')
+    parser.add_argument("--read_prefix", help="File prefix used to identify multichannel/FM file type. \
+            E.g., if all target files start in DY_FM..., use --read_prefix=DY_FM", type=str, default='')
+    parser.add_argument("--read_suffix", help="File suffix used to identify multichannel/FM file type. \
+            E.g., if all target files end in ..._2.raw, use --read_suffix=_2", type=str, default='')
     parser.add_argument("--group", help="If True, create new files containing all channels with same pulse form", type=bool, default=False)
     parser.add_argument("--within_channel", help="If True, split files where multiple pulse forms exist in a single channel", type=bool, default=False)
+    parser.add_argument("--overwrite", help="If True, process every file found, regardless of if basename already exists in output", type=bool, default=False)
+    parser.add_argument("--ignore_last", help="If True, process every file except the one most recently modified. This is for real-time survey applications", type=bool, default=False)
     args = parser.parse_args()
     return args
 

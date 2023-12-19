@@ -150,7 +150,7 @@ class inputs(object):
         raw_files_datetime = [os.path.basename(r).split('_')[1][5:-4] for r in self.raw_files]
         line_files = []
         for dt in raw_files_datetime:
-            print(os.path.dirname(self.raw_files[0])+'/*'+dt+'*'+c_id.split('-')[0]+'*'+c_id.split('_')[1]+'.xyz')
+            #print(os.path.dirname(self.raw_files[0])+'/*'+dt+'*'+c_id.split('-')[0]+'*'+c_id.split('_')[1]+'.xyz')
             line_files.append(glob(os.path.dirname(self.raw_files[0])+'/*'+dt+'*'+c_id.split('-')[0]+'*'+c_id.split('_')[1]+'.xyz')[0])
         if len(line_files)!=len(self.raw_files):
             print('Number of line files does not match number of raw files')

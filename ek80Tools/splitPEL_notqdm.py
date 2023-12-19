@@ -36,7 +36,10 @@ class splitFiles():
                             DY_FM..., use --prefix=DY_FM
     --group GROUP       If True, create new files containing all channels with same pulse form
     --within_channel WITHIN_CHANNEL If True, split files where multiple pulse forms exist in a single channel
+    --overwrite OVERWRITE If True, process every file found, regardless of if basename already exists in output
+    --ignore_last IGNORE_LAST If True, process every file except the one most recently modified. This is for real-time survey applications.
 
+    
     A major thing to clean up is hitting the 'reset' button between each file. Some 
     of the init assignments need to be done for ever file in a file list so some stuff 
     should get moved around. Lots of cleaning to do.
@@ -53,6 +56,19 @@ class splitFiles():
             self.in_files = [self.in_dir+'/'+f for f in args.in_files.split(',')]
         else:
             self.in_files = glob(self.in_dir+'/'+args.prefix+'*'+args.suffix+'.raw')
+
+        print('Input contains '+str(len(self.in_files))+' files')
+        if not args.overwrite:
+            for file in sorted(self.in_files):
+                if glob(self.out_dir+(os.path.splitext(os.path.basename(file))[0])+'*'):
+                    self.in_files.remove(file)
+            print(str(len(self.in_files))+' files unprocessed')
+
+        if args.ignore_last:
+            latest_file = max(self.in_files, key=os.path.getctime)
+            print('Ignoring latest file: '+latest_file+' (most recent modification time)')
+            self.in_files.remove(latest_file)
+        
         if not os.path.exists(self.out_dir):
             os.makedirs(self.out_dir)
         self.group = args.group
@@ -170,6 +186,8 @@ def parseArguments():
             E.g., if all target files end in ..._2.raw, use --suffix=_2", type=str, default='')
     parser.add_argument("--group", help="If True, create new files containing all channels with same pulse form", type=bool, default=False)
     parser.add_argument("--within_channel", help="If True, split files where multiple pulse forms exist in a single channel", type=bool, default=False)
+    parser.add_argument("--overwrite", help="If True, process every file found, regardless of if basename already exists in output", type=bool, default=False)
+    parser.add_argument("--ignore_last", help="If True, process every file except the one most recently modified. This is for real-time survey applications", type=bool, default=False)
     args = parser.parse_args()
     return args
 
