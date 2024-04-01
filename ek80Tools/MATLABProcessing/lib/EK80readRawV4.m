@@ -105,7 +105,7 @@ else
                             channelNum = channelNum + 1; % Keeping anyway in case config is missing
                         end
                         channel = channels(p.ChannelID);  % hash to get channel #
-                        if channel == 1
+                        if channel == 3
                             pingno = pingno + 1;
                             no_reads = 1;
                         end
