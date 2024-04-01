@@ -10,22 +10,35 @@ import os
 
 
 class inputs(object):
+    '''
+    This sets up an 'inputs' object that takes care of all the various variables needed for 
+    the sv(f) calculations. It's a bit of a catch all, but it's a good way to keep everything
+    together for a single frequency.
+    '''
 
     def __init__(self, ek80,freq,add_cw=False,frequency_resolution=None):
 
         gain = gains.gains() # This should be replaced with a pyEcholab grab of xml files(s)
         self.gaindf = gain.df # This is also a future delme
 
-        fm_channel_ids = self.get_fm_channel_ids(ek80)
-        self.data = ek80.get_channel_data()[fm_channel_ids[freq]][0]
+        fm_channel_ids = self.get_fm_channel_ids(ek80) # get the fm channels
+        self.data = ek80.get_channel_data()[fm_channel_ids[freq]][0] # get the data object for the frequency we're working on
         self.raw_files = np.unique([k['file_path']+'\\'+k['file_name'] for k in self.data.configuration])
 
         self.fnom = freq
-        self.cal = self.data.get_calibration()
+        self.cal = self.data.get_calibration() # grab pyEcholab calibration params
         
-        self.frequency_resolution = frequency_resolution
-         
-        self.f,self.gf = gain.getGains(int(self.fnom/1000),1)
+        self.frequency_resolution = frequency_resolution # If none, we use whatever is in the file
+
+        # Use the little gains class built for this project to get the frequency and gain vectors 
+        try:
+            self.f,self.gf = gain.getGains(int(self.fnom/1000),1)
+        except:
+            print('No gain table, using parameters as stored in header')
+            self.f,self.gf = self.cal
+            
+
+        # If we're adding the CW data, we need to grab the data and the calibration and just process it up front
         if add_cw:
             f_cw,self.gf_cw = gain.getGains(int(self.fnom/1000),0)
             cw_channel_ids = self.get_cw_channel_ids(ek80)
@@ -35,15 +48,21 @@ class inputs(object):
             self.cal_cw.sa_correction = np.array([0]*len(self.cal_cw.sa_correction))
             self.Sv_cw = self.data_cw.get_Sv(calibration = self.cal_cw)
         
-        self.get_vars()
-        self.build_transmit_signal()
-        self.Sv_t = self.data.get_Sv(calibration = self.cal)
+        self.get_vars() # get all the input params needed for the calulculation functions
+        self.build_transmit_signal() # make our transmit signal for match filtering
+        self.Sv_t = self.data.get_Sv(calibration = self.cal) # get the Sv(t) data 
+        
+        # If we have gps, grab it 
         try:
             self.nmea = ek80.nmea_data.interpolate(self.data, 'RMC')
         except:
             print('No NMEA data found')
 
     def get_fm_channel_ids(self,ek80):
+        '''
+        Makes a list of the channel ids where the pulse is FM.
+        !!!This should be updated now that there is an 'is_cw()' property in the pyEcholab data object!!!
+        '''
         fnom_dict = {34000.0:38000,50000.0:70000,95000.0:120000,165000.0:200000}
         fm_channel_ids = {}
         for channel in ek80.channel_ids:
@@ -52,6 +71,10 @@ class inputs(object):
         return fm_channel_ids
     
     def get_cw_channel_ids(self,ek80):
+        '''
+        Makes a list of the channel ids where the pulse is CW.
+        !!!This should be updated now that there is an 'is_cw()' property in the pyEcholab data object!!!
+        '''
         cw_channel_ids = {}
         for channel in ek80.channel_ids:
             if ek80.get_channel_data()[channel][0].pulse_form[0]==0:
@@ -59,6 +82,10 @@ class inputs(object):
         return cw_channel_ids
     
     def get_vars(self):
+        '''
+        Grab all the required variables from the data to pass to the calculations library functions. Everything
+        needed for Lars' functions exists in pyEcholab, it's just organized a bit differently.
+        '''
       
         # transducer and receiver impedance, and the number of frequency steps (we'll copy the 1000 from Lars)
         self.z_td_e, self.z_rx_e, self.n_f_points = self.data.ZTRANSDUCER, self.data.ZTRANSCEIVER, 500
@@ -136,6 +163,9 @@ class inputs(object):
         self.y_mf_auto_n, tau_eff =  calc.Calculation.calcAutoCorrelation(self.y_mf_n, self.f_s_dec)
 
     def get_bottom_xyz(self):
+        '''
+        Make a pyEcholab line object from an xyz file
+        '''
         c_id = self.data.channel_id.split(' ')[-1]
         self.bottom_xyz = self.__get_bottom_xyz(c_id, Sv=self.Sv_t)
         try:
@@ -195,12 +225,15 @@ class inputs(object):
 
         return range
     
+
+    
+class svf(object):
+
     '''
     Sv(f) class for FM only
     
     '''
-    
-class svf(object):
+        
     def __init__(self):
         self.Sv_sample = {}
         self.frequency = {}
@@ -208,17 +241,24 @@ class svf(object):
         self.Sv_noise = {}
 
 
-    def calc_sample_Svf(self,inputs,exclude_above_line=None, exclude_below_line=None,step=None,ping_start=None,ping_end=None):
-        Sv_sample, frequency, svf_range = calc_sample_Svf(inputs,exclude_above_line=exclude_above_line, exclude_below_line=exclude_below_line,step=step,ping_start=ping_start,ping_end=ping_end)
+    def calc_sample_Svf(self,inputs,exclude_above_line=None, exclude_below_line=None,Nfft=None, step=None,ping_start=None,ping_end=None):
+        '''
+        This is just a class wrapper for the calc_sample_Svf function below
+        '''
+        Sv_sample, frequency, svf_range = calc_sample_Svf(inputs,exclude_above_line=exclude_above_line, exclude_below_line=exclude_below_line,Nfft=Nfft,step=step,ping_start=ping_start,ping_end=ping_end)
         self.Sv_sample[inputs.fnom] = Sv_sample
         self.frequency[inputs.fnom] = frequency
         self.svf_range = svf_range
 
 
-    def grid_Svf(self,inputs,interval_langth=50, layer_thickness=5):
+    def grid_Svf(self,inputs,interval_length=50, layer_thickness=5):
+        '''
+        Grid up the Sv(f) by sample data according to the input interval length and layer thickness.
+        '''
+
         svf_grid = []
 
-        self.g = grid.grid(interval_length=interval_langth, interval_axis='ping_number',layer_axis='range',data=inputs.Sv_t, layer_thickness=layer_thickness)
+        self.g = grid.grid(interval_length=interval_length, interval_axis='ping_number',layer_axis='range',data=inputs.Sv_t, layer_thickness=layer_thickness)
 
         for iter_interval in range(self.g.n_intervals):
             #self.calc_noise(iter_interval)
@@ -239,6 +279,9 @@ class svf(object):
 
 
     def get_noise(self,inputs):
+        '''
+        Follow De Robertis and Higgenbottom 2007 noise estimation, will work on CW or FM data
+        '''
         Sv_sample_noise, frequency, svf_range = calc_sample_Svf(inputs,ping_start=self.g.ping_start[0],ping_end=self.g.ping_start[0]+1)
         hold_layer_noise = []
         for iter_layer in range(self.g.n_layers):
@@ -257,11 +300,11 @@ class svf(object):
         self.Sv_noise[inputs.fnom] = np.array(Sv_noise_bylayer)
 
 
-'''
-Sv(t) class for both FM and CW
-'''
 
 class svt(object):
+    '''
+    Sv(t) class for both FM and CW
+    '''
     def __init__(self,pulse='FM'):
         self.Sv_sample = {}
         self.frequency = {}
@@ -335,6 +378,9 @@ class svt(object):
 
 
     def get_noise(self, inputs, passive_lookup=None):
+        '''
+        If a lookup table is provided, use the lookup estimate of noise, otherwise use the De Robertis and Higgenbottom 2007 noise estimation
+        '''
         curDate = np.unique([os.path.basename(r).split('_')[1][5:-4].split('-')[0] for r in inputs.raw_files])[0]
         if passive_lookup is not None:
             if self.pulse== 'FM':
@@ -365,7 +411,13 @@ class svt(object):
             noise = np.percentile(passive_lookup.xs(f,level=1).xs(CW,level=1).noiseMean,.90)
         return noise
 
-    
+
+
+'''
+Functions for general processing
+'''
+
+# Write the gridded sv(f) data to a csv file matching the echoview exports
 def write_grid_to_csv(results,freq,output_dir=''):
 
     with open(output_dir+results.first_raw_datetime+'_'+str(int(freq/1000))+'.csv', 'w', newline='') as csvfile:
@@ -377,7 +429,7 @@ def write_grid_to_csv(results,freq,output_dir=''):
         for i_int in range(len(results.Sv_grid[freq])):
             for i_layer in range(len(results.Sv_grid[freq][i_int])):
                 # put noise by layer in here
-                if isinstance(results.frequency[freq],int): 
+                if isinstance(results.frequency[freq],int): # CW Data
                     writer.writerow([freq,i_int+1,i_layer+1,
                                 results.g.time_start[i_int],
                                 results.g.time_end[i_int],
@@ -391,7 +443,7 @@ def write_grid_to_csv(results,freq,output_dir=''):
                                 results.Sv_grid[freq][i_int][i_layer],
                                 (results.Sv_grid[freq][i_int][i_layer]-results.Sv_noise[freq][i_layer])])
                 else:
-                    writer.writerow([freq,i_int+1,i_layer+1,
+                    writer.writerow([freq,i_int+1,i_layer+1, # FM Data
                                 results.g.time_start[i_int],
                                 results.g.time_end[i_int],
                                 results.g.ping_start[i_int],
@@ -405,22 +457,31 @@ def write_grid_to_csv(results,freq,output_dir=''):
                                 ';'.join([str(j) for j in (results.Sv_grid[freq][i_int][i_layer]-results.Sv_noise[freq][i_layer])])])
             
 
-    
-    
-
+# power mean
 def pMean(data,axis=0):
     return 10*np.log10(np.nanmean(10**(data/10),axis=axis))
 
+# power standard deviation
 def pStd(data,axis=0):
     return 10*np.log10(np.nanmean(10**(data/10),axis=axis)-np.std(10**(data/10),axis=axis)),10*np.log10(np.nanmean(10**(data/10),axis=axis)+np.std(10**(data/10),axis=axis))
 
-def calc_sample_Svf(svf_inputs,exclude_above_line=None, exclude_below_line=None,step=None,ping_start=None,ping_end=None):
+
+# This is the main function that does the work for calculating Svf for each sample
+def calc_sample_Svf(svf_inputs,exclude_above_line=None, exclude_below_line=None,Nfft=None,step=None,ping_start=None,ping_end=None):
     if step:
         step = step
     else:
         # This can be coded up so that we can do it in m instead of in samples based on the pulse length in the file
-        step_size = {38000:10,70000:40,120000:60,200000:120} #roughly correspond to ~.5 m using a 1ms pulse
+        step_size = {38000:10,70000:43,120000:64,200000:128} #roughly correspond to ~.5 m using a 1ms pulse
         step = step_size[svf_inputs.fnom]
+    
+    if Nfft:
+        Nfft = Nfft
+    else:
+        # This can be coded up so that we can do it in m instead of in samples based on the pulse length in the file
+        Nfft_size = {38000:42,70000:170,120000:256,200000:512} #roughly correspond to ~2 m using a 1ms pulse
+        Nfft = Nfft_size[svf_inputs.fnom]
+    
     if not ping_start:
         ping_start = 0
     if not ping_end:
@@ -467,7 +528,7 @@ def calc_sample_Svf(svf_inputs,exclude_above_line=None, exclude_below_line=None,
         y_pc_s_n = calc.Calculation.calcPulseCompSphericalSpread(y_pc_n, svf_inputs.r_n)
 
         # Here we build the hanning window, outputting the weights, length of window, time interval, and time vector 
-        w_tilde_i, N_w, t_w, t_w_n = calc.Calculation.defHanningWindow(svf_inputs.c, svf_inputs.tau, svf_inputs.dr, svf_inputs.f_s_dec)
+        w_tilde_i, N_w, t_w, t_w_n = calc.Calculation.defHanningWindow(svf_inputs.c, svf_inputs.tau, svf_inputs.dr, svf_inputs.f_s_dec, N_w=Nfft)
 
 
         # Get the discrete fourier transform of the compressed data using the hanning window

@@ -861,7 +861,7 @@ class Calculation():
         Y_pc_v_m_n = []
         Y_tilde_pc_v_m_n = []
         svf_range = []
-
+    
         # DFT of auto correlation function of the matched filter signal
         _Y_mf_auto_m = np.fft.fft(y_mf_auto_n, n=N_w)
         Y_mf_auto_m = Calculation.freqtransf(_Y_mf_auto_m, f_s_dec, f_m)
