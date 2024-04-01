@@ -1,0 +1,75 @@
+
+
+data:
+    #  specify the source path to the raw files to process
+    raw_file_source_path: X:/DY2403/raw
+
+    #  specify the path where the fixed raw files will be written
+    raw_fixed_dest_path: X:/DY2403/instantEchoOutput
+    
+    #  specify a string to append to the filename of fixed files. Set this to None
+    #  to not alter the fixed filename. For example, if this is set to 'vlw' (sans quotes)
+    #  and the source filename is: DY2400_gear_trials-D20240115-T010403.raw
+    #  the fixed filename will be: DY2400_gear_trials-D20240115-T010403vlw.raw
+    append_to_fixed_filename:  None
+
+    #  set this to True to copy associated .bot, .xyz, and .idx files.
+    copy_ancillary_files: True
+
+    #  skip last file - Set to True to skip the last file in the source directory (last determined
+    #  by file name sort order.) This prevents partial (but closed) raw files from being processed
+    #  and ensures that only complete files are processed.
+    skip_last_file:  True
+
+
+application:
+
+    #  set this to a string defining the sqlite database filename. The sqlite database stores
+    #  information about the files that have been processed.
+    sqllite_filename: CWSaver_processing.db3
+
+    #  set this to the directory the application log files will be written to.
+    log_directory: C:/CWSaver/logs
+
+    #  Set this to True to delete an existing database file when the application starts.
+    #  This is for development and normally this should be set to False.
+    purge_database_at_start: False
+
+    #  specify the maximum number of threads that will process .raw files. The application
+    #  will not spawn more that this number of threads to process files.
+    max_fixer_threads: 2
+
+    # Specify the log level (ERROR, WARNING, INFO, DEBUG) this should normally be INFO
+    log_level: DEBUG
+
+    #  set to True to have the application continually monitor the source directory and
+    #  process new files as they appear. Set to False to just process the files in the
+    #  source directory and exit.
+    continually_monitor: True
+
+    # Specify the interval, in seconds, between checks of the source dir for new files
+    source_check_interval: 300
+
+    #  set reprocess_files to True to process all .raw files in a directory, even if the
+    #  file was already processed. When set to False, files that are listed as processed
+    #  in the database will be ignored. This is always set to False if continually_monitor
+    #  is set to True.
+    reprocess_files: False
+
+    #  Set overwrite to True to automatically overwrite a raw file if it exists in the
+    #  destination directory. If set to False and the destination file exists, an error will
+    #  be issued and the file is skipped.
+    overwrite_files: False
+
+    # Set to True to split CW channels from the FM files, and label/save as specified above
+    split_fm: False
+    
+    # Set to True to save out .tiff files containing a layer for each CW channel in the data
+    # with a size set by the instant_echogram_x and instant_echogram_y ivalues defined below.
+    create_instant_echogram: True
+    
+    # Specify x dimension (pixels), if None, 1 pixel = 1 ping
+    instant_echogram_x: 800 
+    
+    # Specify y dimension (pixels), if None, 1 pixel = 1 m
+    instant_echogram_y: 500 
