@@ -16,7 +16,10 @@ class inputs(object):
     together for a single frequency.
     '''
 
-    def __init__(self, ek80,freq,add_cw=False,frequency_resolution=None):
+    def __init__(self, ek80,freq,add_cw=False, n_f_points=500):
+
+        
+        self.n_f_points = n_f_points # the number of frequency steps (Lars uses 1000), this is what will be used for the fft
 
         gain = gains.gains() # This should be replaced with a pyEcholab grab of xml files(s)
         self.gaindf = gain.df # This is also a future delme
@@ -27,8 +30,6 @@ class inputs(object):
 
         self.fnom = freq
         self.cal = self.data.get_calibration() # grab pyEcholab calibration params
-        
-        self.frequency_resolution = frequency_resolution # If none, we use whatever is in the file
 
         # Use the little gains class built for this project to get the frequency and gain vectors 
         try:
@@ -87,8 +88,8 @@ class inputs(object):
         needed for Lars' functions exists in pyEcholab, it's just organized a bit differently.
         '''
       
-        # transducer and receiver impedance, and the number of frequency steps (we'll copy the 1000 from Lars)
-        self.z_td_e, self.z_rx_e, self.n_f_points = self.data.ZTRANSDUCER, self.data.ZTRANSCEIVER, 500
+        # transducer and receiver impedance
+        self.z_td_e, self.z_rx_e = self.data.ZTRANSDUCER, self.data.ZTRANSCEIVER
 
         # We can go straight to the final sampling frequency after all the decimation by just taking it from the samples directly
         self.f_s_dec = 1/self.data.sample_interval[0]
@@ -140,9 +141,6 @@ class inputs(object):
         cal_g = 10**(cal_g/10) # make it linear
 
         f_interp = interp1d(cal_f, cal_g,fill_value=np.nan)
-        
-        if self.frequency_resolution:
-            self.f_m = np.arange(self.f_0,self.f_1+1,self.frequency_resolution)
 
         self.g_0_m = f_interp(self.f_m)
 
