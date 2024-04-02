@@ -239,16 +239,19 @@ class svf(object):
         self.frequency = {}
         self.Sv_grid = {}
         self.Sv_noise = {}
+        self.ping_time = {}
+        self.svf_range = {}
 
 
     def calc_sample_Svf(self,inputs,exclude_above_line=None, exclude_below_line=None,Nfft=None, step=None,ping_start=None,ping_end=None):
         '''
         This is just a class wrapper for the calc_sample_Svf function below
         '''
-        Sv_sample, frequency, svf_range = calc_sample_Svf(inputs,exclude_above_line=exclude_above_line, exclude_below_line=exclude_below_line,Nfft=Nfft,step=step,ping_start=ping_start,ping_end=ping_end)
+        Sv_sample, frequency, svf_range, ping_time = calc_sample_Svf(inputs,exclude_above_line=exclude_above_line, exclude_below_line=exclude_below_line,Nfft=Nfft,step=step,ping_start=ping_start,ping_end=ping_end)
         self.Sv_sample[inputs.fnom] = Sv_sample
         self.frequency[inputs.fnom] = frequency
-        self.svf_range = svf_range
+        self.svf_range[inputs.fnom] = svf_range
+        self.ping_time[inputs.fnom] = ping_time
 
 
     def grid_Svf(self,inputs,interval_length=50, layer_thickness=5):
@@ -264,7 +267,7 @@ class svf(object):
             #self.calc_noise(iter_interval)
             hold_layer = []
             for iter_layer in range(self.g.n_layers):
-                layer_i = np.where([(self.svf_range>=self.g.layer_edges[iter_layer])&(self.svf_range<self.g.layer_edges[iter_layer]+self.g.layer_thickness)])[1]
+                layer_i = np.where([(self.svf_range[inputs.fnom]>=self.g.layer_edges[iter_layer])&(self.svf_range[inputs.fnom]<self.g.layer_edges[iter_layer]+self.g.layer_thickness)])[1]
                 cur_cell_full = self.Sv_sample[inputs.fnom][self.g.ping_start[iter_interval]:self.g.ping_end[iter_interval]+1,layer_i[0]:layer_i[-1]+1]
                 hold_layer.append(pMean(pMean(cur_cell_full,axis=1),axis=0))
             svf_grid.append(np.array(hold_layer))
@@ -282,7 +285,7 @@ class svf(object):
         '''
         Follow De Robertis and Higgenbottom 2007 noise estimation, will work on CW or FM data
         '''
-        Sv_sample_noise, frequency, svf_range = calc_sample_Svf(inputs,ping_start=self.g.ping_start[0],ping_end=self.g.ping_start[0]+1)
+        Sv_sample_noise, frequency, svf_range, ping_time = calc_sample_Svf(inputs,ping_start=self.g.ping_start[0],ping_end=self.g.ping_start[0]+1)
         hold_layer_noise = []
         for iter_layer in range(self.g.n_layers):
             layer_i = np.where([(self.svf_range>=self.g.layer_edges[iter_layer])&(self.svf_range<self.g.layer_edges[iter_layer]+self.g.layer_thickness)])[1]
@@ -492,6 +495,7 @@ def calc_sample_Svf(svf_inputs,exclude_above_line=None, exclude_below_line=None,
     #y_rx_nu = data.complex[0]
     #y_rx_nu = np.array([np.array([k[0] for k in y_rx_nu]), np.array([k[1] for k in y_rx_nu]),np.array([k[2] for k in y_rx_nu]),np.array([k[3] for k in y_rx_nu])])
     Sv_full = []
+    pTime = []
 
     # This should be match/case but I'm running 3.9
     if exclude_below_line: # something exists, either it's true, an 'xyz' or a value
@@ -546,8 +550,9 @@ def calc_sample_Svf(svf_inputs,exclude_above_line=None, exclude_below_line=None,
                 P_rx_e_t_m_n, svf_inputs.alpha_m, svf_inputs.p_tx_e, svf_inputs.lambda_m, t_w, svf_inputs.psi_m, svf_inputs.g_0_m, svf_inputs.c, svf_range)
         
         Sv_full.append(Sv_m_n)
+        pTime.append(svf_inputs.data.ping_time[ping_no])
 
     Sv_sample= np.array(Sv_full)  
     frequency= svf_inputs.f_m  
     
-    return Sv_sample, frequency, svf_range
+    return Sv_sample, frequency, svf_range, np.array(pTime)
