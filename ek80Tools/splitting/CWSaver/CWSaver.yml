@@ -2,10 +2,10 @@
 
 data:
     #  specify the source path to the raw files to process
-    raw_file_source_path: J:/2024/DY2403/fm/TestRun
+    raw_file_source_path: \\akc0ss-n086\\MACE_Acoustic2\\DY2402\\ek80
 
     #  specify the path where the fixed raw files will be written
-    raw_fixed_dest_path: X:/DY2403/CWSaver_TestRun
+    raw_fixed_dest_path: G:/DY2402/instantEchogram
     
 
     #  specify a string to append to the filename of fixed files. Set this to None
@@ -15,12 +15,12 @@ data:
     append_to_fixed_filename:  cw
 
     #  set this to True to copy associated .bot, .xyz, and .idx files.
-    copy_ancillary_files: True
+    copy_ancillary_files: False
 
     #  skip last file - Set to True to skip the last file in the source directory (last determined
     #  by file name sort order.) This prevents partial (but closed) raw files from being processed
     #  and ensures that only complete files are processed.
-    skip_last_file:  True
+    skip_last_file:  False
 
 
 application:
@@ -30,7 +30,7 @@ application:
     sqllite_filename: CWSaver_processing.db3
 
     #  set this to the directory the application log files will be written to.
-    log_directory: C:/CWSaver/logs
+    log_directory: C:/temp
 
     #  Set this to True to delete an existing database file when the application starts.
     #  This is for development and normally this should be set to False.
@@ -63,7 +63,7 @@ application:
     overwrite_files: False
 
     # Set to True to split CW channels from the FM files, and label/save as specified above
-    split_fm: True
+    split_fm: False
     
     # Set to True to save out .tiff files containing a layer for each CW channel in the data
     # with a size set by the instant_echogram_x and instant_echogram_y ivalues defined below.
