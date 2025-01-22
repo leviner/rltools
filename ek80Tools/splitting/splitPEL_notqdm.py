@@ -79,7 +79,7 @@ class splitFiles():
         
     def openFile(self):
             self.nameBase = os.path.basename(self.file)
-            self.ek_data = echosounder.read([self.file])[0]
+            self.ek_data = echosounder.read([self.file])
     
     def splitFile(self):
         for self.channel in self.ek_data.channel_ids:
