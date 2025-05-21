@@ -5,8 +5,11 @@ import tsCalc
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
-
+import sys
+import configparser
 from echolab2.instruments import echosounder
+import warnings
+warnings.filterwarnings("ignore")
 
 from matplotlib.pyplot import figure, show, subplots_adjust, get_cmap
 from echolab2.plotting.matplotlib import echogram
@@ -38,17 +41,6 @@ class singleTargetsInit():
     sdAlng = np.array([])
     sdAthw = np.array([])
     normWidth = np.array([])
-
-class defaultsInit():
-    prompt_for_params = False
-    temp = 5.5
-    salinity = 32.5
-    lat = 55.0
-    sphere_diameter = 38.1
-    beam_width_deg = 6.5
-    sphere_material = 'Tungsten carbide'
-    vessel = 'Dyson'
-    figure_folder = 'C:/Temp'
     
 def get_refTS(d, sphere_material,sphere_depth,sphere_diameter,defaults):
     try:
@@ -56,24 +48,26 @@ def get_refTS(d, sphere_material,sphere_depth,sphere_diameter,defaults):
         (float(d.nmea_data.get_datagrams('GGA')['GGA']['data'][0].lat[2:])/60)
     except:
         print('No GPS data was found in the raw file.\n')
-        if defaults.prompt_for_params:
+        if defaults['prompt_for_params']=='True':
             lat = input('Enter the approximate latitude of the calibration in decimal degrees: ')
-            lat = float(lat)
         else:
-            lat = defaults.lat
+            lat = defaults['lat']
+        lat = float(lat)
 
     materialPoperties = tsCalc.material_properties()[sphere_material]
 
-    if defaults.prompt_for_params:
+    if defaults['prompt_for_params']=='True':
         temp = input('Enter the temperature of the calibration in degrees C. If unknown, leave empty (press enter): ')
         salinity = input('Enter the salinity of the calibration. If unknown, leave empty (press enter): ')
         if temp == '':
-            temp = defaults.temp
+            temp = defaults['temp']
         if salinity == '':
-            salinity = 32.5
+            salinity = defaults['salinity']
     else:
-        temp = defaults.temp
-        salinity = defaults.salinity
+        temp = defaults['temp']
+        salinity = defaults['salinity']
+    temp = float(temp)
+    salinity = float(salinity)
     
     c, rho = tsCalc.water_properties(salinity, temp, sphere_depth, lon=0.0, lat=lat)
 
@@ -98,7 +92,7 @@ def calEchogram(d_sv,f,defaults,sphereRange=None,sphereRangeTol=1):
     fig_1 = figure(figsize=(12,9))
     eg = echogram.Echogram(fig_1, d_sv1,threshold=[-90,-30])
     eg.add_colorbar(fig_1)
-    plt.savefig(defaults.figure_folder+'/'+'Echogram-'+defaults.vessel+'-'+np.datetime_as_string(d_sv.ping_time[0],unit='D')+'.png')
+    plt.savefig(defaults['figure_folder']+'/'+'Echogram-'+defaults['vessel']+'-'+str(f)+'-'+np.datetime_as_string(d_sv.ping_time[0],unit='D')+'.png')
     plt.show(block=False)
     plt.pause(0.001)
 
@@ -257,24 +251,22 @@ def find_points_in_sector(x_coords, y_coords, radius, sector_num=1):
     return combined_mask, x_in_sector, y_in_sector
 
 
-def main():    
+def main(defaults):    
     root.withdraw()  # Hide the root window
     file_path = filedialog.askopenfilenames(title='Select your .raw calibration files',filetypes=[('raw files', '*.raw')])
     if isinstance(file_path, tuple):
         file_path = list(file_path)
-
-    defaults = defaultsInit()
     
-    if defaults.prompt_for_params:
+    if defaults['prompt_for_params']=='True':
         sphere_diameter = input('Enter the sphere diameter in mm: ')
-        sphere_diameter = float(sphere_diameter)
     else:
-        sphere_diameter = defaults.sphere_diameter
+        sphere_diameter = defaults['sphere_diameter']
+    sphere_diameter = float(sphere_diameter)
     
-    if defaults.prompt_for_params:
+    if defaults['prompt_for_params']=='True':
         sphere_material = input('Enter the sphere material "Cu" or "WC": ')
     else:
-        sphere_material = defaults.sphere_material
+        sphere_material = defaults['sphere_material']
 
     if sphere_material == 'Cu':
         sphere_material = 'Copper'
@@ -282,7 +274,12 @@ def main():
         sphere_material = 'Tungsten carbide'
 
     sphere_depth = input('Enter the approximate mean sphere depth during the calibration in m: ')
-    sphere_depth = float(sphere_depth)
+    try:
+        sphere_depth = float(sphere_depth)
+    except:
+        sphere_depth = input('Whoops, that was not a valiud number.\nEnter the approximate mean sphere depth during the calibration in m: ')
+        sphere_depth = float(sphere_depth)
+
     sphere_depth_tol = 4
 
     cur_f = input('Enter the frequency of the calibration you want to look at in kHz (38 or 120): ')
@@ -301,8 +298,8 @@ def main():
         print('This is a GPT calibration with ES software. Conducting triangle wave correction...')
         triwave_correcter = TriwaveCorrect(0,5)
         data, fit_results, val = triwave_correcter.triwave_correct(d)
-        d_sv_corr = data.get_Sv(calibration=cal)
-        with open(defaults.figure_folder+'/TriangleCorrection-'+np.datetime_as_string(d_sv.ping_time[0],unit='D')+'.txt', 'w') as f:
+        d_sv = data.get_Sv(calibration=cal)
+        with open(defaults['figure_folder']+'/TriangleCorrection-'+np.datetime_as_string(d_sv.ping_time[0],unit='D')+'.txt', 'w') as f:
             print(fit_results, file=f)
     else:
         d_sv = echosounder.get_Sv(ek_data,frequencies=[cur_f])[cur_channel]
@@ -324,8 +321,12 @@ def main():
         if goodSphere == 'n':
             sphere_depth = input('Enter an updated sphere depth in m: ')
             sphere_depth = float(sphere_depth)
-        if goodSphere == 'y':
-            print(':D')
+        elif goodSphere == 'y':
+            print('Continuing with the sphere depth of '+str(sphere_depth)+' m.')
+        else:
+            print('Invalid input. Please enter "y" or "n".')
+            goodSphere = 'n'
+        
         plt.close('all')
 
     sphere_range = sphere_depth - d_sv.depth[0]
@@ -339,10 +340,12 @@ def main():
 
     sphereHits = np.where(np.abs(singleTargetsResults.r-sphere_range)<(sphere_depth_tol/2))
 
+    subsector_divisions = float(defaults['subsector_divisions'])
+
     if len(sphereHits[0]) == 0:
         print('No sphere hits were detected!')
     else:
-        beam_radius_rad = np.radians(defaults.beam_width_deg / 2)  # Half of beam width in radians
+        beam_radius_rad = np.radians(float(defaults['beam_width_deg'])/ 2)  # Half of beam width in radians
         beam_radius_meters = np.mean(singleTargetsResults.r[sphereHits])  * np.tan(beam_radius_rad)  # Radius in meters
 
         plt.figure(figsize=(10, 5))
@@ -352,9 +355,9 @@ def main():
         for sec in np.arange(1,9):
 
             mask, x,y = find_points_in_sector(d_athwart, d_along,beam_radius_meters,sector_num=sec)
-            cts = np.histogram(np.sqrt(x**2+ y**2),bins=np.arange(0,beam_radius_meters+(beam_radius_meters/6),beam_radius_meters/6))[0]
+            cts = np.histogram(np.sqrt(x**2+ y**2),bins=np.arange(0,beam_radius_meters+(beam_radius_meters/(subsector_divisions+1)),beam_radius_meters/subsector_divisions))[0]
 
-            if (cts == 0).any():
+            if (cts <float(defaults['min_targets_per_division'])).any():
                 color='red'
             else:
                 color='darkgreen'
@@ -383,8 +386,8 @@ def main():
         yellow_patch = patches.Patch(color='yellow', label='Some coverage but not enough\n(on-axis only)')
         green_patch = patches.Patch(color='green', label='Good coverage')
         plt.legend(handles=[red_patch, yellow_patch, green_patch],bbox_to_anchor=(1, .6))
-        
-        plt.savefig(defaults.figure_folder+'/'+'TargetsInBeam-'+defaults.vessel+'-'+np.datetime_as_string(d_sv.ping_time[0],unit='D')+'.png')
+        plt.tight_layout()        
+        plt.savefig(defaults['figure_folder']+'/'+'TargetsInBeam-'+defaults['vessel']+'-'+str(cur_f)+'-'+np.datetime_as_string(d_sv.ping_time[0],unit='D')+'.png')
         plt.show(block=False)
         plt.pause(0.1)
 
@@ -395,12 +398,27 @@ def main():
         plt.fill_betweenx([0, np.max(a[0])*1.05], refTS-1.5, refTS+1.5, color='red', alpha=0.5)
         plt.ylim(0, np.max(a[0])*1.05)
         plt.grid()
-        plt.savefig(defaults.figure_folder+'/'+'TargetTS-'+defaults.vessel+'-'+np.datetime_as_string(d_sv.ping_time[0],unit='D')+'.png')
+        plt.savefig(defaults['figure_folder']+'/'+'TargetTS-'+defaults['vessel']+'-'+str(cur_f)+'-'+np.datetime_as_string(d_sv.ping_time[0],unit='D')+'.png')
         #plt.show(block=False)
         #plt.pause(0.1)
 
-        esc = input('All done! Copies of all of the figures can be found in'+defaults.figure_folder+'.\nPress enter to close all figures and exit.')
+        esc = input('All done! Copies of all of the figures can be found in'+defaults['figure_folder']+'.\nPress enter to close all figures and exit.')
         plt.close('all')
 
 if __name__ == "__main__": 
-    main()
+    sys.stdout.write('\r\n\r\n\r\n')
+    sys.stdout.write('|-------------------------------------------------------------------------------|\r\n')
+    sys.stdout.write("|              AVO Cal Check - Calibrate Good Times! (Come on!)                 |\r\n")
+    sys.stdout.write('|-------------------------------------------------------------------------------|\r\n')
+    sys.stdout.write('\r\n\r\n')
+
+        #  read the configuration file
+    try:
+        config = configparser.ConfigParser()
+        config.read('AVO.ini')
+    except:
+        #  exit with error if we can't read the config file
+        sys.exit('ERROR: Unable to read configuration file: ' + configFile)
+    
+    defaults = dict(config.items('GENERAL'))
+    main(defaults)
