@@ -1,5 +1,9 @@
 """
-Read module
+
+Subset of read module for SeaBird ctd files.
+
+Fernandes. (2014). python-ctd v0.2.1 (v0.2.1). Zenodo. https://doi.org/10.5281/zenodo.11396
+
 """
 
 import bz2

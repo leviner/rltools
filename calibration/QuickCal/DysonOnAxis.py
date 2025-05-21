@@ -5,92 +5,31 @@ from glob import glob
 import pandas as pd
 import numpy as np
 import re
-import math
+import gsw
 import tsCalc
-from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 from scipy.signal import argrelextrema
 import argparse
+
+import sys
+#sys.path.insert(0, "R:/applications/MaceFunctions")
+sys.path.insert(0, "G:/WPy64-31150/applications/MaceFunctions")
 
 from MaceFunctions.echolab2.instruments import EK80
 from matplotlib.pyplot import figure, show, subplots_adjust, get_cmap
 from MaceFunctions.echolab2.plotting.matplotlib import echogram
 from MaceFunctions.echolab2.processing import  line, grid, integration
-
-def castMeta(file): # get the lat/lon data
-    with open(file) as fd:
-        try:
-            for line in fd:
-                match = re.search(r'NMEA', line)
-                if match:
-                    if re.search('(?<=Latitude)(.*)', line):
-                        lat = re.search('(?<=Latitude)(.*)', line)
-                        lat = lat.group()
-                        lat = float(lat.split()[1])+(float(lat.split()[2])/60)
-                    if re.search('(?<=Longitude)(.*)', line):
-                        lon = re.search('(?<=Longitude)(.*)', line)
-                        lon = lon.group()
-                        lon = -1*float(lon.split()[1])+(float(lon.split()[2])/60)
-                    if re.search('(?<=UTC)(.*)', line):
-                        dt = re.search('(?<=UTC)(.*)', line)
-                        dt = dt.group()
-                        dt = pd.to_datetime(dt.split('=')[1])
-        except:
-            lat, lon, dt = [np.nan for i in range(3)]
-        return lat, lon, dt
     
 def readCnv(file): # get the T/S Data by Cast
     df = ctd.from_cnv(file)
     df= df[['t090C','sal00']].rename(columns={"t090C": "temp", "sal00": "sal"})
-    df['cast'] = float(os.path.basename(file)[3:6])
+    df['cast'] = float(re.search(r'\d+', os.path.basename(file)).group())
     return df
 
-def formatDf(file): # convert pressure to depth
-    lat, lon, dt = castMeta(file)
+def cnv2table(file): # convert pressure to depth
     df = readCnv(file)
-    df['depth'] = pressureToDepth(df.index.values,lat)
-    df = df.set_index(['cast'])
-    df['lat'] = lat
-    df['lon'] = lon
-    return df, lat, lon, dt, df.index.unique()[0]
-    
-    
-def pressureToDepth(p, lat):
-    '''
-    calculates depth based on latitude and pressure. From:
-    Unesco 1983. Algorithms for computation of fundamental properties of
-    seawater, 1983. _Unesco Tech. Pap. in Mar. Sci._, No. 44, 53 pp.
-    '''
-
-    deg2rad = math.pi / 180.0
-
-    # Eqn 25, p26.  UNESCO 1983.
-    c = [9.72659, -2.2512e-5, 2.279e-10, -1.82e-15]
-    gam_dash = 2.184e-6
-
-    lat = abs(lat)
-    X = math.sin(lat * deg2rad)
-    X = X * X
-
-    bot_line = (9.780318 * (1.0 + (5.2788e-3 + 2.36e-5 * X) * X) +
-                gam_dash * 0.5 * p)
-    top_line = (((c[3] * p + c[2]) * p + c[1]) * p + c[0]) * p
-
-    return top_line / bot_line
-
-
-def cnv2table(file): #produce ctd and key dataframes from SB .cnv files #XX AND ADD  THE CASTAWAY PROCESSING
-    dfCtd = pd.DataFrame()
-    lats, lons, casts,time = [[] for i in range(4)]
-    df, lat, lon, dt, cast = formatDf(file)
-    dfCtd = df
-    lats.append(lat)
-    lons.append(lon)
-    casts.append(cast)
-    time.append(dt)
-    dfCtd.loc[dfCtd.temp == -9.990e-29] = np.nan # replace seabird nan with numpy nan
-    dfCtdKey = pd.DataFrame({'cast':casts,'lat':lats,'lon':lons,'time':time})
-    return dfCtd, dfCtdKey
+    df['depth'] = gsw.z_from_p(df.index,50)
+    return df.reset_index()
 
 def castaway2table(ctdFile):
     dfCtd = pd.read_csv(ctdFile)
@@ -98,16 +37,19 @@ def castaway2table(ctdFile):
     return dfCtd[['temp','sal','depth','sound_speed']]
 
 def targetEnv(ctdFile,d,sphere,sphereRange):
+    lat = float(d.nmea_data.get_datagrams('GGA')['GGA']['data'][0].lat[:2])+\
+          (float(d.nmea_data.get_datagrams('GGA')['GGA']['data'][0].lat[2:])/60)
+
     tsbw = {18000:{512:1750,1024:1570},38000:{512:3280,1024:2430},70000:{512:4630,1024:2830},120000:{512:5490,1024:2990},200000:{512:590,1024:3050},333000:{512:590,1024:3050}}
     if ctdFile.split('.')[-1]== 'cnv': # For ship CTD data
-        dfCTD, k = cnv2table(ctdFile)
+        dfCTD= cnv2table(ctdFile)
     elif ctdFile.split('.')[-1]== 'csv': # For castaway data
         dfCTD = castaway2table(ctdFile)
     dfCTD = dfCTD.reset_index()
     materialPoperties = tsCalc.material_properties()['Tungsten carbide']
     
     sphereEnv = dfCTD.iloc[(dfCTD['depth'] - np.floor(sphereRange)-10).abs().argsort()[:1]]
-    c, rho = tsCalc.water_properties(sphereEnv.sal.values, sphereEnv.temp.values, sphereEnv.depth.values, lon=0.0, lat=0.0)
+    c, rho = tsCalc.water_properties(sphereEnv.sal.values, sphereEnv.temp.values, sphereEnv.depth.values, lon=0.0, lat=lat)
     
     if d.is_cw():
         f = d.frequency[0]
@@ -123,11 +65,10 @@ def getSV(f, files=None,fm=True):
     else:
         files = [files]
     print('N files:',len(files))
-    print(files)
 
     print('Reading raw files...')
     curDate = files[0].split('-')[1]
-    #if ek80:
+    #change this to echosounder package
     ek80 = EK80.EK80()
     ek80.read_raw(files,frequencies=[f])
     d = ek80.get_channel_data(frequencies=f)
@@ -210,22 +151,17 @@ def detectSingleTargets(test_data,cal,detectParms,singleTargets):
             sdAlng = np.std(alongTarget)
             if (sdAlng > detectParms.maxSDalong):
                 continue
-
             sdAthw = np.std(athwartTarget)
             if (sdAthw > detectParms.maxSDathwart):
                 continue
-
-
             r = (sum(Sp.range[eStartIdx:eEndIdx] * calPower[eStartIdx:eEndIdx])) /  sum(calPower[eStartIdx:eEndIdx]) -  (cal.sound_speed * cal.pulse_duration) / 4
             if (r > detectParms.excludeBelow) | (r < detectParms.excludeAbove):
                 continue
-            
 
             uTS = calPower[l] + (40 * np.log10(r)) +  (2 * cal.absorption_coefficient[ping] * r)
             cTS = uTS + beamComp
             if (cTS < detectParms.threshold):
                 continue
-            
 
             singleTargets.ping = np.append(singleTargets.ping, ping)
             singleTargets.r = np.append(singleTargets.r, r)
@@ -263,8 +199,8 @@ def intCalSingleTarget(d_sv,singleTargetsResults,cal,refTS=None,sphereRange=20,s
     meanRange = np.mean(singleTargetsResults.r[sphereHits])
     
     # set the sphere lines for the upper/lower integration 
-    upperLine = line.line(ping_time=d_svOnAxis.ping_time, data=meanRange-.5)#(sphereRangeTol*.5)) 
-    lowerLine = line.line(ping_time=d_svOnAxis.ping_time, data=meanRange+1)#(sphereRangeTol*.5)) 
+    upperLine = line.line(ping_time=d_svOnAxis.ping_time, data=meanRange-(sphereRangeTol*.5)) 
+    lowerLine = line.line(ping_time=d_svOnAxis.ping_time, data=meanRange+(sphereRangeTol*1.5)) 
 
     
     fig_1 = figure(figsize=(12,3))
@@ -280,7 +216,6 @@ def intCalSingleTarget(d_sv,singleTargetsResults,cal,refTS=None,sphereRange=20,s
     refNasc = (10**(refTS/10)*(1852**2)*4*np.pi)/((10**(np.unique(cal.equivalent_beam_angle)[0]/10))*((meanRange)**2))
     # Now print it all out
     print('***Cal Results***')
-    print('Reference TS: ',refTS)
     print('Observed TS: ',observedTS) # Observed TS
     print('EBA: ',cal.equivalent_beam_angle[0]) # Observed TS
     print('Target range: ',meanRange) # Mean Range
@@ -295,10 +230,11 @@ def intCalSingleTarget(d_sv,singleTargetsResults,cal,refTS=None,sphereRange=20,s
     return np.unique((cal.gain+cal.sa_correction)-(10*np.log10(refNasc/i_2.nasc))/2) # This returns the Sv gain
 
 class detectParmsInit():
+    # Set something up to mimic TS range from lobes
     PLDL = 6
     maxNormPulseLen = 20
     minNormPulseLen = .1
-    maxBeamComp = .05
+    maxBeamComp = .1
     maxSDalong = .6
     maxSDathwart = .6
     excludeBelow = 1e10
@@ -321,6 +257,7 @@ def main(args):
         args.file = glob(args.file+'/*.raw')
     d, cal,d_sv =  getSV(args.freq,files=args.file,fm=args.FM)
     fr, ts, refTS = targetEnv(args.ctd_file,d,args.sphere_diameter,args.sphere_range)
+    print('Reference TS: ',refTS)
     calEchogram(d_sv,args.freq,sphereRange =args.sphere_range,sphereRangeTol=args.sphere_range_tol)
     detectParms = detectParmsInit()
     singleTargets = singleTargetsInit()
@@ -335,7 +272,14 @@ if __name__ == "__main__":
     parser.add_argument('--FM', type=bool, default=False, help='FM?')
     parser.add_argument('--freq', type=int, default=38000, help='Frequency to calibrate')
     parser.add_argument('--sphere_diameter', type=float, default=38.1, help='diameter of calibration sphere')
-    parser.add_argument('--sphere_range', type=float, default=20, help='range to the sphere')
+    parser.add_argument('--sphere_range', type=float, default=30, help='range to the sphere')
     parser.add_argument('--sphere_range_tol', type=float, default=1, help='tolerance for sphere range')
     args = parser.parse_args()
     main(args)
+
+'''
+Example Call
+python DysonOnAxis.py G:/Robert/QuickCal/data/38 
+--ctd_file=G:/DY2408/calibration/CalibrationCTD/000_processed.cnv 
+--sphere_range=21 --freq=38000
+'''
